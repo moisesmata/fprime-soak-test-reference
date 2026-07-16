@@ -5,8 +5,8 @@
 // ======================================================================
 // Provides access to autocoded functions
 #include <FprimeSoakTestReference/FprimeSoakTestReferenceDeployment/Top/FprimeSoakTestReferenceDeploymentTopologyAc.hpp>
-// Note: Uncomment when using Svc:TlmPacketizer
-//#include <FprimeSoakTestReference/FprimeSoakTestReferenceDeployment/Top/FprimeSoakTestReferenceDeploymentPacketsAc.hpp>
+// Include telemetry packet definitions for TlmPacketizer
+#include <FprimeSoakTestReference/FprimeSoakTestReferenceDeployment/Top/FprimeSoakTestReferenceDeployment_FprimeSoakTestReferenceDeploymentPacketsTlmPacketsAc.hpp>
 
 // Necessary project-specified types
 #include <Fw/Types/MallocAllocator.hpp>
@@ -18,8 +18,8 @@ namespace FprimeSoakTestReference {
 // Instantiate a malloc allocator for cmdSeq buffer allocation
 Fw::MallocAllocator mallocator;
 
-// The reference topology divides the incoming clock signal (1Hz) into sub-signals: 1Hz, 1/2Hz, and 1/4Hz with 0 offset
-Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {2, 0}, {4, 0}}};
+// The reference topology divides the incoming clock signal (1KHz) into sub-signals: 200Hz, 10Hz, and 1Hz with 0 offset
+Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{5, 0}, {100, 0}, {1000, 0}}};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.

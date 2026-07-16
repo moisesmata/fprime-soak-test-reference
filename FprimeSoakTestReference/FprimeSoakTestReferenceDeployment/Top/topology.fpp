@@ -52,7 +52,7 @@ module FprimeSoakTestReference {
   # Telemetry packets (only used when TlmPacketizer is used)
   # ----------------------------------------------------------------------
 
-    # include "FprimeSoakTestReferenceDeploymentPackets.fppi"
+    include "FprimeSoakTestReferenceDeploymentPackets.fppi"
 
   # ----------------------------------------------------------------------
   # Direct graph specifiers
@@ -103,28 +103,28 @@ module FprimeSoakTestReference {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # Rate group 1
+      # Rate group 1 (200Hz): High-rate sensors and telemetry packetization
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
-      rateGroup1.RateGroupMemberOut[0] -> CdhCore.tlmSend.Run
-      rateGroup1.RateGroupMemberOut[1] -> FileHandling.fileDownlink.Run
-      rateGroup1.RateGroupMemberOut[2] -> systemResources.run
-      rateGroup1.RateGroupMemberOut[3] -> ComCcsds.comQueue.run
-      rateGroup1.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
-      rateGroup1.RateGroupMemberOut[5] -> MpuImu.imuManager.run
-      rateGroup1.RateGroupMemberOut[6] -> Bmp280.bmpManager.run
-      rateGroup1.RateGroupMemberOut[7] -> sensorDataApp.run
+      rateGroup1.RateGroupMemberOut[0] -> MpuImu.imuManager.run
+      rateGroup1.RateGroupMemberOut[1] -> sensorDataApp.run
+      rateGroup1.RateGroupMemberOut[2] -> CdhCore.tlmSend.Run
+      rateGroup1.RateGroupMemberOut[3] -> ComCcsds.aggregator.timeout
 
-      # Rate group 2
+      # Rate group 2 (10Hz): Slow sensors and communications
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2.CycleIn
-      rateGroup2.RateGroupMemberOut[0] -> cmdSeq.schedIn
+      rateGroup2.RateGroupMemberOut[0] -> Bmp280.bmpManager.run
+      rateGroup2.RateGroupMemberOut[1] -> FileHandling.fileDownlink.Run
+      rateGroup2.RateGroupMemberOut[2] -> ComCcsds.comQueue.run
 
-      # Rate group 3
+      # Rate group 3 (1Hz): Housekeeping and health monitoring
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup3] -> rateGroup3.CycleIn
       rateGroup3.RateGroupMemberOut[0] -> CdhCore.$health.Run
-      rateGroup3.RateGroupMemberOut[1] -> ComCcsds.commsBufferManager.schedIn
-      rateGroup3.RateGroupMemberOut[2] -> DataProducts.dpBufferManager.schedIn
-      rateGroup3.RateGroupMemberOut[3] -> DataProducts.dpWriter.schedIn
-      rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpMgr.schedIn
+      rateGroup3.RateGroupMemberOut[1] -> systemResources.run
+      rateGroup3.RateGroupMemberOut[2] -> cmdSeq.schedIn
+      rateGroup3.RateGroupMemberOut[3] -> ComCcsds.commsBufferManager.schedIn
+      rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpBufferManager.schedIn
+      rateGroup3.RateGroupMemberOut[5] -> DataProducts.dpWriter.schedIn
+      rateGroup3.RateGroupMemberOut[6] -> DataProducts.dpMgr.schedIn
     }
 
     connections CdhCore_cmdSeq {

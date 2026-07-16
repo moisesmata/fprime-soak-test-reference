@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
 
     // Setup, cycle, and teardown topology
     FprimeSoakTestReference::setupTopology(inputs);
-    FprimeSoakTestReference::startRateGroups(Fw::TimeInterval(0, 10000));  // Program loop cycling rate groups at 100Hz
+    FprimeSoakTestReference::startRateGroups(Fw::TimeInterval(0, 1000));  // Program loop cycling rate groups at 1KHz
     FprimeSoakTestReference::teardownTopology(inputs);
     Fw::Logger::log("Exiting...\n");
     return 0;
