@@ -34,6 +34,7 @@ module FprimeSoakTestReference {
     instance timer
     instance comDriver
     instance cmdSeq
+    instance sensorDataApp
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -111,6 +112,7 @@ module FprimeSoakTestReference {
       rateGroup1.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
       rateGroup1.RateGroupMemberOut[5] -> MpuImu.imuManager.run
       rateGroup1.RateGroupMemberOut[6] -> Bmp280.bmpManager.run
+      rateGroup1.RateGroupMemberOut[7] -> sensorDataApp.run
 
       # Rate group 2
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2.CycleIn
@@ -132,7 +134,13 @@ module FprimeSoakTestReference {
     }
 
     connections FprimeSoakTestReferenceDeployment {
+       # Sensor managers push readings into the application component
+       Bmp280.bmpManager.bmpDataPush -> sensorDataApp.bmpDataIn
+       MpuImu.imuManager.imuDataPush -> sensorDataApp.imuDataIn
 
+       # Application component produces data products (synchronous buffer request)
+       sensorDataApp.productGetOut  -> DataProducts.Subtopology.productGetIn
+       sensorDataApp.productSendOut -> DataProducts.Subtopology.productSendIn
     }
 
   }
