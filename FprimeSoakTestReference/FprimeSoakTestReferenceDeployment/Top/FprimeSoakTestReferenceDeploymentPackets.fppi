@@ -1,9 +1,20 @@
 telemetry packets FprimeSoakTestReferenceDeploymentPackets {
 
+  # High-rate sensor data packet (200Hz rate group)
+  # Contains IMU and fused sensor data for real-time attitude determination
+  packet SensorHighRate id 0 group 0 {
+    FprimeSoakTestReference.sensorDataApp.FusedData
+  }
+
+  # Medium-rate sensor data packet (10Hz rate group)
+  # Contains environmental sensors and data product status
+  packet SensorMediumRate id 3 group 1 {
+    FprimeSoakTestReference.sensorDataApp.DpRecords
+  }
+
   packet CDH id 1 group 1 {
     CdhCore.cmdDisp.CommandsDispatched
     CdhCore.cmdDisp.CommandsDropped
-    #CdhCore.tlmSend.SendLevel # uncomment when using TlmPacketizer
 
     FileHandling.fileUplink.FilesReceived
     FileHandling.fileUplink.PacketsReceived
@@ -162,7 +173,17 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
   }
 
 } omit {
+  # Omit unused command dispatcher errors
   CdhCore.cmdDisp.CommandErrors
-  comDriver.BytesRecv
-  comDriver.BytesSent
+
+  # Omit individual sensor readings (using fused data instead)
+  Bmp280.bmpManager.Reading
+  MpuImu.imuManager.Reading
+
+  # Omit TlmPacketizer internal telemetry
+  CdhCore.tlmSend.GroupConfigs
+  CdhCore.tlmSend.SectionEnabled
+
+  # Omit low-level driver telemetry
+  Bmp280.bmpDriver.SPI_Bytes
 }
