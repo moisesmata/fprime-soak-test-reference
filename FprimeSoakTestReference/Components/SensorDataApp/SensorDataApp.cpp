@@ -11,7 +11,7 @@
 
 #include "FprimeSoakTestReference/Components/SensorDataApp/SensorDataApp.hpp"
 
-namespace SensorData {
+namespace Components {
 
 // ----------------------------------------------------------------------
 // Component construction and destruction
@@ -135,4 +135,4 @@ void SensorDataApp::closeAndSendContainer() {
     this->tlmWrite_DpRecords(this->m_records);
 }
 
-}  // namespace SensorDataApp
+}  // namespace Components

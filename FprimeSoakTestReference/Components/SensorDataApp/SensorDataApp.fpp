@@ -2,7 +2,7 @@
 # If the module and component share a name, generated test harness code emits
 # `SensorData::FusedSensorData` inside `namespace SensorData`, where the name would
 # resolve to the component class instead of the module namespace and fail to compile.
-module SensorData {
+module Components {
 
     @ Struct representing the fused sensor data product
     struct FusedSensorData {

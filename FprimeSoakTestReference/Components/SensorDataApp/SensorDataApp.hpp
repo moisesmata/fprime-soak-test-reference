@@ -9,7 +9,7 @@
 
 #include "FprimeSoakTestReference/Components/SensorDataApp/SensorDataAppComponentAc.hpp"
 
-namespace SensorData {
+namespace Components {
 
 class SensorDataApp final : public SensorDataAppComponentBase {
   public:
@@ -76,6 +76,6 @@ class SensorDataApp final : public SensorDataAppComponentBase {
     U32 m_records;
 };
 
-}  // namespace SensorData
+}  // namespace Components
 
 #endif

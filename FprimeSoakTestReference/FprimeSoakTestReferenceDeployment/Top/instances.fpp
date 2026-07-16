@@ -65,6 +65,6 @@ module FprimeSoakTestReference {
 
   instance comDriver: Drv.LinuxUartDriver base id 0x10014000
 
-  instance sensorDataApp: SensorDataApp.SensorDataApp base id 0x10015000
+  instance sensorDataApp: Components.SensorDataApp base id 0x10015000
 
 }
