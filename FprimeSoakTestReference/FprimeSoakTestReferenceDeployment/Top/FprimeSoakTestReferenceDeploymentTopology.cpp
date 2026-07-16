@@ -68,15 +68,12 @@ void setupTopology(const TopologyState& state) {
     loadParameters();
     // Autocoded task kick-off (active components). Function provided by autocoder.
     startTasks(state);
-    if (state.uartDevice != nullptr) {
+    if (state.hostname != nullptr && state.port != 0) {
+        // Configure TCP client with hostname and port
+        comDriver.configure(state.hostname, state.port);
+        // Start the receive task
         Os::TaskString name("ReceiveTask");
-        // Uplink is configured for receive so a socket task is started
-        if (comDriver.open(state.uartDevice, static_cast<Drv::LinuxUartDriver::UartBaudRate>(state.baudRate), 
-                           Drv::LinuxUartDriver::NO_FLOW, Drv::LinuxUartDriver::PARITY_NONE, 2048)) {
-            comDriver.start(COMM_PRIORITY, Default::STACK_SIZE);
-        } else {
-            printf("Failed to open UART device %s at baud rate %" PRIu32 "\n", state.uartDevice, state.baudRate);
-        }
+        comDriver.start(name, COMM_PRIORITY, Default::STACK_SIZE);
     }
 }
 
@@ -98,7 +95,7 @@ void teardownTopology(const TopologyState& state) {
     freeThreads(state);
 
     // Other task clean-up.
-    comDriver.quitReadThread();
+    comDriver.stop();
     (void)comDriver.join();
 
     // Resource deallocation

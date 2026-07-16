@@ -66,10 +66,10 @@ namespace FprimeSoakTestReference {
  * contents are entirely up to the definition of the project. This deployment uses subtopologies.
  */
 struct TopologyState {
-    const char* uartDevice; //!< UART device path for communication
-    U32 baudRate;          //!< Baud rate for UART communication
+    const char* hostname;  //!< Hostname/IP address for TCP communication
+    U16 port;              //!< Port number for TCP communication
     CdhCore::SubtopologyState cdhCore;           //!< Subtopology state for CdhCore
-    ComCcsds::SubtopologyState comCcsds;         //!< Subtopology state for ComCcsds 
+    ComCcsds::SubtopologyState comCcsds;         //!< Subtopology state for ComCcsds
     DataProducts::SubtopologyState dataProducts; //!< Subtopology state for DataProducts
     FileHandling::SubtopologyState fileHandling; //!< Subtopology state for FileHandling
     MpuImu::SubtopologyState mpu;                //!< Subtopology state for MpuImu
