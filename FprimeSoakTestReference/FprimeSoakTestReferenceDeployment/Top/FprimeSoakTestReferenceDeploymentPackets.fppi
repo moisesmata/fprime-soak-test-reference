@@ -165,14 +165,15 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
   packet Version_Custom10 id 37 group 2 {
     CdhCore.version.CustomVersion10
   }
+  
+  packet Sensor_Readings id 38 group 2  {
+    Bmp280.bmpManager.Reading
+    MpuImu.imuManager.Reading
+  }
 
 } omit {
   # Omit unused command dispatcher errors
   CdhCore.cmdDisp.CommandErrors
-
-  # Omit individual sensor readings (using fused data instead)
-  Bmp280.bmpManager.Reading
-  MpuImu.imuManager.Reading
 
   # Omit TlmPacketizer internal telemetry
   CdhCore.tlmSend.GroupConfigs
