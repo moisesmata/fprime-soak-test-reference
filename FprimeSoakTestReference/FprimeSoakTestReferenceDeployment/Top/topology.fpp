@@ -103,7 +103,7 @@ module FprimeSoakTestReference {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # Rate group 1 (200Hz): High-rate sensors and telemetry packetization
+      # Rate group 1 (50Hz): High-rate sensors and telemetry packetization
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
       rateGroup1.RateGroupMemberOut[0] -> MpuImu.imuManager.run
       rateGroup1.RateGroupMemberOut[1] -> CdhCore.tlmSend.Run
