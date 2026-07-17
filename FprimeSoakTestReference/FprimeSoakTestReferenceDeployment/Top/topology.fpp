@@ -106,15 +106,17 @@ module FprimeSoakTestReference {
       # Rate group 1 (200Hz): High-rate sensors and telemetry packetization
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
       rateGroup1.RateGroupMemberOut[0] -> MpuImu.imuManager.run
-      rateGroup1.RateGroupMemberOut[1] -> sensorDataProducer.run
-      rateGroup1.RateGroupMemberOut[2] -> CdhCore.tlmSend.Run
-      rateGroup1.RateGroupMemberOut[3] -> ComCcsds.aggregator.timeout
+      rateGroup1.RateGroupMemberOut[1] -> CdhCore.tlmSend.Run
+      rateGroup1.RateGroupMemberOut[2] -> ComCcsds.aggregator.timeout
 
       # Rate group 2 (10Hz): Slow sensors and communications
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2.CycleIn
       rateGroup2.RateGroupMemberOut[0] -> Bmp280.bmpManager.run
       rateGroup2.RateGroupMemberOut[1] -> FileHandling.fileDownlink.Run
       rateGroup2.RateGroupMemberOut[2] -> ComCcsds.comQueue.run
+      # Flush partially-filled DP containers at 10Hz; RECORDS_PER_CONTAINER
+      # handles normal batching of the 200Hz sensor stream.
+      rateGroup2.RateGroupMemberOut[3] -> sensorDataProducer.run
 
       # Rate group 3 (1Hz): Housekeeping and health monitoring
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup3] -> rateGroup3.CycleIn

@@ -94,11 +94,10 @@ void SensorDataProducer::imuDataIn_handler(FwIndexType portNum, const MpuImu::Im
 }
 
 void SensorDataProducer::run_handler(FwIndexType portNum, U32 context) {
-    // Flush any partially filled container on the schedule so that data is not
-    // held indefinitely when the sensors produce samples slowly.
-    if (this->m_dpInProgress && this->m_records > 0) {
-        this->closeAndSendContainer();
-    }
+    // Fill-only policy: containers are sent exclusively from recordWritten() once
+    // they reach RECORDS_PER_CONTAINER. The run tick performs no flushing, so a
+    // partially filled container is held until it fills. Note: any trailing
+    // records in an open container are not sent on shutdown.
 }
 
 // ----------------------------------------------------------------------

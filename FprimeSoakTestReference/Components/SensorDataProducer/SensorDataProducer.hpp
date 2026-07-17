@@ -14,7 +14,7 @@ namespace Components {
 class SensorDataProducer final : public SensorDataProducerComponentBase {
   public:
     //! Number of records (BMP or IMU) accumulated before a container is closed and sent
-    static constexpr U32 RECORDS_PER_CONTAINER = 10;
+    static constexpr U32 RECORDS_PER_CONTAINER = 100;
 
     // ----------------------------------------------------------------------
     // Component construction and destruction
