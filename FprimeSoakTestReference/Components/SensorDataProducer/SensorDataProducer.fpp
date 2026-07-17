@@ -1,17 +1,23 @@
-# The module is deliberately named differently from the SensorDataApp component.
-# If the module and component share a name, generated test harness code emits
-# `SensorData::FusedSensorData` inside `namespace SensorData`, where the name would
-# resolve to the component class instead of the module namespace and fail to compile.
 module Components {
 
-    @ Struct representing the fused sensor data product
-    struct FusedSensorData {
+    @ Struct representing one timestamped BMP280 sample stored as a data product record.
+    struct BmpSensorData {
+        @ Time the sample was received
+        timeTag: Fw.TimeValue
         @ Pressure from BMP280 (Pa)
         pressure: F32
         @ Temperature from BMP280 (C)
-        bmpTemperature: F32
+        temperature: F32
+        @ Altitude from BMP280 (m)
+        altitude: F32
+    }
+
+    @ Struct representing one timestamped IMU sample stored as a data product record.
+    struct ImuSensorData {
+        @ Time the sample was received
+        timeTag: Fw.TimeValue
         @ Temperature from IMU (C)
-        imuTemperature: F32
+        temperature: F32
         @ Acceleration from IMU (m/s^2)
         acceleration: FprimeSensors.GeometricVector3
         @ Angular rate from IMU (deg/s)
@@ -19,8 +25,8 @@ module Components {
     }
 
     @ Application component in the App-Manager-Driver pattern. Consumes data pushed
-    @ from BmpManager and ImuManager, fuses it, and produces data products.
-    passive component SensorDataApp {
+    @ from BmpManager and ImuManager and produces data products 
+    passive component SensorDataProducer {
 
         # ----------------------------------------------------------------------
         # Sensor data inputs (pushed from the sensor managers)
@@ -39,18 +45,18 @@ module Components {
         # Data products
         # ----------------------------------------------------------------------
 
-        @ Record holding one fused sensor sample
-        product record FusedRecord: FusedSensorData id 0
+        @ Record holding one BMP280 sample
+        product record BmpRecord: BmpSensorData id 0
 
-        @ Container accumulating fused sensor records
-        product container FusedDataContainer id 0 default priority 10
+        @ Record holding one IMU sample
+        product record ImuRecord: ImuSensorData id 1
+
+        @ Container accumulating BMP and IMU records
+        product container SensorDataContainer id 0 default priority 10
 
         # ----------------------------------------------------------------------
         # Telemetry
         # ----------------------------------------------------------------------
-
-        @ Most recent fused sensor data
-        telemetry FusedData: FusedSensorData
 
         @ Number of records written into the current data product container
         telemetry DpRecords: U32
@@ -62,12 +68,12 @@ module Components {
         @ A new data product container was opened
         event DpStarted \
             severity activity low \
-            format "Opened new fused-data container"
+            format "Opened new sensor data container"
 
         @ A data product container was filled and sent
         event DpComplete(records: U32) \
             severity activity low \
-            format "Sent fused-data container with {} records"
+            format "Sent sensor data container with {} records"
 
         @ Failed to acquire a data product buffer
         event DpMemoryFail \

@@ -34,7 +34,7 @@ module FprimeSoakTestReference {
     instance timer
     instance comDriver
     instance cmdSeq
-    instance sensorDataApp
+    instance sensorDataProducer
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -106,7 +106,7 @@ module FprimeSoakTestReference {
       # Rate group 1 (200Hz): High-rate sensors and telemetry packetization
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
       rateGroup1.RateGroupMemberOut[0] -> MpuImu.imuManager.run
-      rateGroup1.RateGroupMemberOut[1] -> sensorDataApp.run
+      rateGroup1.RateGroupMemberOut[1] -> sensorDataProducer.run
       rateGroup1.RateGroupMemberOut[2] -> CdhCore.tlmSend.Run
       rateGroup1.RateGroupMemberOut[3] -> ComCcsds.aggregator.timeout
 
@@ -135,12 +135,12 @@ module FprimeSoakTestReference {
 
     connections FprimeSoakTestReferenceDeployment {
        # Sensor managers push readings into the application component
-       Bmp280.bmpManager.bmpDataPush -> sensorDataApp.bmpDataIn
-       MpuImu.imuManager.imuDataPush -> sensorDataApp.imuDataIn
+       Bmp280.bmpManager.bmpDataPush -> sensorDataProducer.bmpDataIn
+       MpuImu.imuManager.imuDataPush -> sensorDataProducer.imuDataIn
 
        # Application component produces data products (synchronous buffer request)
-       sensorDataApp.productGetOut  -> DataProducts.Subtopology.productGetIn
-       sensorDataApp.productSendOut -> DataProducts.Subtopology.productSendIn
+       sensorDataProducer.productGetOut  -> DataProducts.Subtopology.productGetIn
+       sensorDataProducer.productSendOut -> DataProducts.Subtopology.productSendIn
     }
 
   }

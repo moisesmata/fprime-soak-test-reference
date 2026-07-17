@@ -1,18 +1,18 @@
 // ======================================================================
-// \title  SensorDataAppTester.hpp
+// \title  SensorDataProducerTester.hpp
 // \author moisesmata
-// \brief  hpp file for SensorDataApp component test harness implementation class
+// \brief  hpp file for SensorDataProducer component test harness implementation class
 // ======================================================================
 
-#ifndef SensorDataApp_SensorDataAppTester_HPP
-#define SensorDataApp_SensorDataAppTester_HPP
+#ifndef SensorDataProducer_SensorDataProducerTester_HPP
+#define SensorDataProducer_SensorDataProducerTester_HPP
 
-#include "FprimeSoakTestReference/Components/SensorDataApp/SensorDataApp.hpp"
-#include "FprimeSoakTestReference/Components/SensorDataApp/SensorDataAppGTestBase.hpp"
+#include "FprimeSoakTestReference/Components/SensorDataProducer/SensorDataProducer.hpp"
+#include "FprimeSoakTestReference/Components/SensorDataProducer/SensorDataProducerGTestBase.hpp"
 
-namespace SensorData {
+namespace Components {
 
-class SensorDataAppTester : public SensorDataAppGTestBase {
+class SensorDataProducerTester : public SensorDataProducerGTestBase {
   public:
     // Maximum size of histories storing events, telemetry, and port outputs
     static const FwSizeType MAX_HISTORY_SIZE = 100;
@@ -21,19 +21,22 @@ class SensorDataAppTester : public SensorDataAppGTestBase {
     // Backing store size for a requested data product buffer
     static const FwSizeType DP_BUFFER_SIZE = 4096;
 
-    //! Construct object SensorDataAppTester
-    SensorDataAppTester();
+    //! Construct object SensorDataProducerTester
+    SensorDataProducerTester();
 
-    //! Destroy object SensorDataAppTester
-    ~SensorDataAppTester();
+    //! Destroy object SensorDataProducerTester
+    ~SensorDataProducerTester();
 
   public:
     // ----------------------------------------------------------------------
     // Tests
     // ----------------------------------------------------------------------
 
-    //! A container is only allocated after both sensors have reported
-    void testNoDataProductUntilBothSensors();
+    //! A BMP reading opens a container and writes a BMP record
+    void testBmpReadingWritesRecord();
+
+    //! An IMU reading opens a container and writes an IMU record
+    void testImuReadingWritesRecord();
 
     //! Records accumulate and the container is sent once full
     void testContainerSendsWhenFull();
@@ -55,8 +58,11 @@ class SensorDataAppTester : public SensorDataAppGTestBase {
     //! Initialize components
     void initComponents();
 
-    //! Push one BMP reading and one IMU reading into the component
-    void pushBothSensors(F32 pressure, F32 bmpTemp, F32 imuTemp);
+    //! Push one BMP reading into the component
+    void pushBmp(F32 pressure, F32 temperature);
+
+    //! Push one IMU reading into the component
+    void pushImu(F32 temperature);
 
     //! Handle a data product buffer request from the component under test.
     //! Returns m_getStatus so tests can simulate allocation failure.
@@ -70,7 +76,7 @@ class SensorDataAppTester : public SensorDataAppGTestBase {
     // ----------------------------------------------------------------------
 
     //! The component under test
-    SensorDataApp component;
+    SensorDataProducer component;
 
     //! Backing store handed out for data product buffers
     U8 m_dpBuffer[DP_BUFFER_SIZE];
@@ -79,6 +85,6 @@ class SensorDataAppTester : public SensorDataAppGTestBase {
     Fw::Success::T m_getStatus;
 };
 
-}  // namespace SensorDataApp
+}  // namespace Components
 
 #endif

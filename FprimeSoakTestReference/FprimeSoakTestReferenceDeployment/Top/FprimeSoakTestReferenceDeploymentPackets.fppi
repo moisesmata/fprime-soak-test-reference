@@ -1,15 +1,9 @@
 telemetry packets FprimeSoakTestReferenceDeploymentPackets {
 
-  # High-rate sensor data packet (200Hz rate group)
-  # Contains IMU and fused sensor data for real-time attitude determination
-  packet SensorHighRate id 0 group 0 {
-    FprimeSoakTestReference.sensorDataApp.FusedData
-  }
-
   # Medium-rate sensor data packet (10Hz rate group)
-  # Contains environmental sensors and data product status
+  # Contains the latest BMP sample and data product record count
   packet SensorMediumRate id 3 group 1 {
-    FprimeSoakTestReference.sensorDataApp.DpRecords
+    FprimeSoakTestReference.sensorDataProducer.DpRecords
   }
 
   packet CDH id 1 group 1 {

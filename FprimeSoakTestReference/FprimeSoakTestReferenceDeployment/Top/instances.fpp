@@ -65,6 +65,6 @@ module FprimeSoakTestReference {
 
   instance comDriver: Drv.TcpClient base id 0x10014000
 
-  instance sensorDataApp: Components.SensorDataApp base id 0x10015000
+  instance sensorDataProducer: Components.SensorDataProducer base id 0x10015000
 
 }

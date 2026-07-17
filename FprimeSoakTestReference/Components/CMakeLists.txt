@@ -1,3 +1,3 @@
 # Include project-wide components here
 
-add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SensorDataApp")
+add_fprime_subdirectory("${CMAKE_CURRENT_LIST_DIR}/SensorDataProducer")

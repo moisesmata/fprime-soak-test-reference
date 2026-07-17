@@ -1,49 +1,51 @@
 // ======================================================================
-// \title  SensorDataAppTester.cpp
+// \title  SensorDataProducerTester.cpp
 // \author moisesmata
-// \brief  cpp file for SensorDataApp component test harness implementation class
+// \brief  cpp file for SensorDataProducer component test harness implementation class
 //
 // Follows the data-product testing approach described at
 // https://fprime.jpl.nasa.gov/latest/docs/how-to/data-products/#testing
 // ======================================================================
 
-#include "SensorDataAppTester.hpp"
+#include "SensorDataProducerTester.hpp"
 
-namespace SensorData {
+namespace Components {
 
 // ----------------------------------------------------------------------
 // Construction and destruction
 // ----------------------------------------------------------------------
 
-SensorDataAppTester::SensorDataAppTester()
-    : SensorDataAppGTestBase("SensorDataAppTester", MAX_HISTORY_SIZE),
-      component("SensorDataApp"),
+SensorDataProducerTester::SensorDataProducerTester()
+    : SensorDataProducerGTestBase("SensorDataProducerTester", MAX_HISTORY_SIZE),
+      component("SensorDataProducer"),
       m_getStatus(Fw::Success::SUCCESS) {
     this->initComponents();
     this->connectPorts();
 }
 
-SensorDataAppTester::~SensorDataAppTester() {}
+SensorDataProducerTester::~SensorDataProducerTester() {}
 
 // ----------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------
 
-void SensorDataAppTester::pushBothSensors(F32 pressure, F32 bmpTemp, F32 imuTemp) {
+void SensorDataProducerTester::pushBmp(F32 pressure, F32 temperature) {
     Bmp280::Bmp280Data bmp;
     bmp.set_pressure(pressure);
-    bmp.set_temperature(bmpTemp);
+    bmp.set_temperature(temperature);
     bmp.set_altitude(0.0f);
     this->invoke_to_bmpDataIn(0, bmp);
+}
 
+void SensorDataProducerTester::pushImu(F32 temperature) {
     MpuImu::ImuData imu;
-    imu.set_temperature(imuTemp);
+    imu.set_temperature(temperature);
     imu.set_acceleration(FprimeSensors::GeometricVector3(1.0f, 2.0f, 3.0f));
     imu.set_rotation(FprimeSensors::GeometricVector3(4.0f, 5.0f, 6.0f));
     this->invoke_to_imuDataIn(0, imu);
 }
 
-Fw::Success::T SensorDataAppTester::productGet_handler(FwDpIdType id, FwSizeType dataSize, Fw::Buffer& buffer) {
+Fw::Success::T SensorDataProducerTester::productGet_handler(FwDpIdType id, FwSizeType dataSize, Fw::Buffer& buffer) {
     this->pushProductGetEntry(id, dataSize);
     if (Fw::Success::SUCCESS == this->m_getStatus) {
         FW_ASSERT(dataSize <= sizeof(this->m_dpBuffer), static_cast<FwAssertArgType>(dataSize));
@@ -56,51 +58,54 @@ Fw::Success::T SensorDataAppTester::productGet_handler(FwDpIdType id, FwSizeType
 // Tests
 // ----------------------------------------------------------------------
 
-void SensorDataAppTester::testNoDataProductUntilBothSensors() {
-    // A BMP reading alone must not produce a fused record or request a buffer
-    Bmp280::Bmp280Data bmp;
-    bmp.set_pressure(101000.0f);
-    bmp.set_temperature(25.0f);
-    bmp.set_altitude(0.0f);
-    this->invoke_to_bmpDataIn(0, bmp);
-
-    ASSERT_PRODUCT_GET_SIZE(0);
-    ASSERT_TLM_FusedData_SIZE(0);
-
-    // Once the IMU reading arrives, a fused record is produced and a container opened
-    MpuImu::ImuData imu;
-    imu.set_temperature(30.0f);
-    imu.set_acceleration(FprimeSensors::GeometricVector3(0.0f, 0.0f, 0.0f));
-    imu.set_rotation(FprimeSensors::GeometricVector3(0.0f, 0.0f, 0.0f));
-    this->invoke_to_imuDataIn(0, imu);
+void SensorDataProducerTester::testBmpReadingWritesRecord() {
+    // A single BMP reading opens a container, writes one record, and publishes telemetry
+    this->pushBmp(101000.0f, 25.0f);
 
     ASSERT_PRODUCT_GET_SIZE(1);
-    ASSERT_TLM_FusedData_SIZE(1);
+    ASSERT_TLM_BmpData_SIZE(1);
     ASSERT_TLM_DpRecords(0, 1);
     ASSERT_EVENTS_DpStarted_SIZE(1);
     // Not full yet, so nothing sent
     ASSERT_PRODUCT_SEND_SIZE(0);
 }
 
-void SensorDataAppTester::testContainerSendsWhenFull() {
-    // Push exactly RECORDS_PER_CONTAINER fused samples
-    for (U32 i = 0; i < SensorDataApp::RECORDS_PER_CONTAINER; i++) {
-        this->pushBothSensors(101000.0f + static_cast<F32>(i), 25.0f, 30.0f);
+void SensorDataProducerTester::testImuReadingWritesRecord() {
+    // A single IMU reading opens a container, writes one record, and publishes telemetry
+    this->pushImu(30.0f);
+
+    ASSERT_PRODUCT_GET_SIZE(1);
+    ASSERT_TLM_ImuData_SIZE(1);
+    ASSERT_TLM_DpRecords(0, 1);
+    ASSERT_EVENTS_DpStarted_SIZE(1);
+    // Not full yet, so nothing sent
+    ASSERT_PRODUCT_SEND_SIZE(0);
+}
+
+void SensorDataProducerTester::testContainerSendsWhenFull() {
+    // Interleave BMP and IMU readings. Both record types share one container and
+    // one counter, so RECORDS_PER_CONTAINER total records fill it regardless of type.
+    for (U32 i = 0; i < SensorDataProducer::RECORDS_PER_CONTAINER; i++) {
+        if ((i % 2) == 0) {
+            this->pushBmp(101000.0f + static_cast<F32>(i), 25.0f);
+        } else {
+            this->pushImu(30.0f + static_cast<F32>(i));
+        }
     }
 
     // Records accumulate into a single container that is sent once full
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(1);
     ASSERT_EVENTS_DpComplete_SIZE(1);
-    ASSERT_EVENTS_DpComplete(0, SensorDataApp::RECORDS_PER_CONTAINER);
+    ASSERT_EVENTS_DpComplete(0, SensorDataProducer::RECORDS_PER_CONTAINER);
 
     // State resets after the send: the counter telemetry ends at 0
     ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, 0);
 }
 
-void SensorDataAppTester::testRunFlushesPartialContainer() {
-    // One fused record opens a container but does not fill it
-    this->pushBothSensors(101000.0f, 25.0f, 30.0f);
+void SensorDataProducerTester::testRunFlushesPartialContainer() {
+    // One BMP record opens a container but does not fill it
+    this->pushBmp(101000.0f, 25.0f);
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
     ASSERT_TLM_DpRecords(0, 1);
@@ -120,10 +125,10 @@ void SensorDataAppTester::testRunFlushesPartialContainer() {
     ASSERT_PRODUCT_SEND_SIZE(0);
 }
 
-void SensorDataAppTester::testAllocationFailure() {
+void SensorDataProducerTester::testAllocationFailure() {
     // Simulate a failed buffer allocation
     this->m_getStatus = Fw::Success::FAILURE;
-    this->pushBothSensors(101000.0f, 25.0f, 30.0f);
+    this->pushBmp(101000.0f, 25.0f);
 
     // A buffer was requested, allocation failed, and nothing was sent
     ASSERT_PRODUCT_GET_SIZE(1);
@@ -131,4 +136,4 @@ void SensorDataAppTester::testAllocationFailure() {
     ASSERT_EVENTS_DpMemoryFail_SIZE(1);
 }
 
-}  // namespace SensorDataApp
+}  // namespace Components

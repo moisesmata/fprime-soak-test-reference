@@ -1,30 +1,30 @@
 // ======================================================================
-// \title  SensorDataApp.hpp
+// \title  SensorDataProducer.hpp
 // \author moisesmata
-// \brief  hpp file for SensorDataApp component implementation class
+// \brief  hpp file for SensorDataProducer component implementation class
 // ======================================================================
 
-#ifndef SensorDataApp_SensorDataApp_HPP
-#define SensorDataApp_SensorDataApp_HPP
+#ifndef SensorDataProducer_SensorDataProducer_HPP
+#define SensorDataProducer_SensorDataProducer_HPP
 
-#include "FprimeSoakTestReference/Components/SensorDataApp/SensorDataAppComponentAc.hpp"
+#include "FprimeSoakTestReference/Components/SensorDataProducer/SensorDataProducerComponentAc.hpp"
 
 namespace Components {
 
-class SensorDataApp final : public SensorDataAppComponentBase {
+class SensorDataProducer final : public SensorDataProducerComponentBase {
   public:
-    //! Number of fused records accumulated before a container is closed and sent
+    //! Number of records (BMP or IMU) accumulated before a container is closed and sent
     static constexpr U32 RECORDS_PER_CONTAINER = 10;
 
     // ----------------------------------------------------------------------
     // Component construction and destruction
     // ----------------------------------------------------------------------
 
-    //! Construct SensorDataApp object
-    SensorDataApp(const char* const compName);
+    //! Construct SensorDataProducer object
+    SensorDataProducer(const char* const compName);
 
-    //! Destroy SensorDataApp object
-    ~SensorDataApp();
+    //! Destroy SensorDataProducer object
+    ~SensorDataProducer();
 
   private:
     // ----------------------------------------------------------------------
@@ -48,9 +48,13 @@ class SensorDataApp final : public SensorDataAppComponentBase {
     //! \return true if a container was opened, false otherwise
     bool openContainer();
 
-    //! Serialize the current fused sample into the open container, opening one
-    //! if necessary, and send the container once it is full
-    void writeFusedRecord();
+    //! Ensure a container is open for writing, opening one lazily if needed
+    //! \return true if a container is available for writing, false otherwise
+    bool ensureContainerOpen();
+
+    //! Account for a record just written: bump the counter and send the
+    //! container once it is full
+    void recordWritten();
 
     //! Send the open container and reset the record counter
     void closeAndSendContainer();
@@ -58,15 +62,6 @@ class SensorDataApp final : public SensorDataAppComponentBase {
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
-
-    //! Most recent BMP data
-    Bmp280::Bmp280Data m_lastBmpData;
-    //! Most recent IMU data
-    MpuImu::ImuData m_lastImuData;
-    //! Whether BMP data has been received since the last fused record
-    bool m_hasBmpData;
-    //! Whether IMU data has been received since the last fused record
-    bool m_hasImuData;
 
     //! The data product container being filled
     DpContainer m_container;
