@@ -103,30 +103,32 @@ module FprimeSoakTestReference {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # Rate group 1 (50Hz): High-rate sensors and telemetry packetization
+      # Rate group 1 (1kHz): Command sequencer for fast command dispatch. Only
+      # non-blocking work belongs here given the 1ms cycle budget.
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
-      rateGroup1.RateGroupMemberOut[0] -> MpuImu.imuManager.run
-      rateGroup1.RateGroupMemberOut[1] -> CdhCore.tlmSend.Run
-      rateGroup1.RateGroupMemberOut[2] -> ComCcsds.aggregator.timeout
+      rateGroup1.RateGroupMemberOut[0] -> cmdSeq.schedIn
 
-      # Rate group 2 (10Hz): Slow sensors and communications
+      # Rate group 2 (10Hz): Sensors, telemetry packetization, and communications.
+      # The blocking-I2C IMU read runs here (100ms budget) with ample headroom.
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2.CycleIn
-      rateGroup2.RateGroupMemberOut[0] -> Bmp280.bmpManager.run
-      rateGroup2.RateGroupMemberOut[1] -> FileHandling.fileDownlink.Run
-      rateGroup2.RateGroupMemberOut[2] -> ComCcsds.comQueue.run
-      # Flush partially-filled DP containers at 10Hz; RECORDS_PER_CONTAINER
-      # handles normal batching of the 200Hz sensor stream.
-      rateGroup2.RateGroupMemberOut[3] -> sensorDataProducer.run
+      rateGroup2.RateGroupMemberOut[0] -> MpuImu.imuManager.run
+      rateGroup2.RateGroupMemberOut[1] -> Bmp280.bmpManager.run
+      rateGroup2.RateGroupMemberOut[2] -> FileHandling.fileDownlink.Run
+      rateGroup2.RateGroupMemberOut[3] -> ComCcsds.comQueue.run
+      rateGroup2.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
+      rateGroup2.RateGroupMemberOut[5] -> CdhCore.tlmSend.Run
+      # Flush partially-filled DP containers; RECORDS_PER_CONTAINER handles normal
+      # batching of the sensor stream (currently a no-op under the fill-only policy).
+      rateGroup2.RateGroupMemberOut[6] -> sensorDataProducer.run
 
       # Rate group 3 (1Hz): Housekeeping and health monitoring
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup3] -> rateGroup3.CycleIn
       rateGroup3.RateGroupMemberOut[0] -> CdhCore.$health.Run
       rateGroup3.RateGroupMemberOut[1] -> systemResources.run
-      rateGroup3.RateGroupMemberOut[2] -> cmdSeq.schedIn
-      rateGroup3.RateGroupMemberOut[3] -> ComCcsds.commsBufferManager.schedIn
-      rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpBufferManager.schedIn
-      rateGroup3.RateGroupMemberOut[5] -> DataProducts.dpWriter.schedIn
-      rateGroup3.RateGroupMemberOut[6] -> DataProducts.dpMgr.schedIn
+      rateGroup3.RateGroupMemberOut[2] -> ComCcsds.commsBufferManager.schedIn
+      rateGroup3.RateGroupMemberOut[3] -> DataProducts.dpBufferManager.schedIn
+      rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpWriter.schedIn
+      rateGroup3.RateGroupMemberOut[5] -> DataProducts.dpMgr.schedIn
     }
 
     connections CdhCore_cmdSeq {

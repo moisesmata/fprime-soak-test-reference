@@ -18,10 +18,11 @@ namespace FprimeSoakTestReference {
 // Instantiate a malloc allocator for cmdSeq buffer allocation
 Fw::MallocAllocator mallocator;
 
-// The reference topology divides the incoming clock signal (1KHz) into sub-signals: 50Hz, 10Hz, and 1Hz with 0 offset.
-// rateGroup1 runs at 50Hz (20ms budget) so the blocking I2C IMU read and inline data-product serialization on that
-// thread have ample headroom and do not overrun the cycle (previously 200Hz/5ms, which slipped).
-Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{20, 0}, {100, 0}, {1000, 0}}};
+// The topology divides the incoming clock signal (1KHz) into sub-signals with 0 offset:
+//   rateGroup1 = 1000/1    = 1000Hz (1ms)  - command sequencer (fast dispatch, no blocking work)
+//   rateGroup2 = 1000/100  =   10Hz (100ms)- sensors, TlmPacketizer, comms, file downlink
+//   rateGroup3 = 1000/1000 =    1Hz (1s)   - housekeeping / health / data-product services
+Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 0}}};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.
