@@ -29,6 +29,7 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
     FprimeSoakTestReference.rateGroup1.RgMaxTime
     FprimeSoakTestReference.rateGroup2.RgMaxTime
     FprimeSoakTestReference.rateGroup3.RgMaxTime
+    FprimeSoakTestReference.rateGroup4.RgMaxTime
   }
 
   packet CDHErrors id 2 group 1 {
@@ -45,6 +46,7 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
     FprimeSoakTestReference.rateGroup1.RgCycleSlips
     FprimeSoakTestReference.rateGroup2.RgCycleSlips
     FprimeSoakTestReference.rateGroup3.RgCycleSlips
+    FprimeSoakTestReference.rateGroup4.RgCycleSlips
   }
 
   packet SystemRes1 id 5 group 2 {
