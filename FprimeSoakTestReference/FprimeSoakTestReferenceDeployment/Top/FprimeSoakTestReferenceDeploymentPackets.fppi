@@ -4,6 +4,8 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
   # Contains the latest BMP sample and data product record count
   packet SensorMediumRate id 3 group 1 {
     FprimeSoakTestReference.sensorDataProducer.DpRecords
+    FprimeSoakTestReference.sensorDataProducer.WritingEnabled
+    FprimeSoakTestReference.sensorDataProducer.DroppedRecords
   }
 
   packet CDH id 1 group 1 {
@@ -34,6 +36,7 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
 
   packet CDHErrors id 2 group 1 {
     CdhCore.$health.PingLateWarnings
+    CdhCore.events.EventsDropped
 
     FileHandling.fileUplink.Warnings
     FileHandling.fileDownlink.Warnings
@@ -85,6 +88,8 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
     DataProducts.dpMgr.NumDataProducts
     DataProducts.dpMgr.NumBytes
 
+    DataProducts.dpBufferAccumulator.BA_NumQueuedBuffers
+
     DataProducts.dpWriter.NumBuffersReceived
     DataProducts.dpWriter.NumBytesWritten
     DataProducts.dpWriter.NumSuccessfulWrites
@@ -96,6 +101,12 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
     DataProducts.dpBufferManager.HiBuffs
     DataProducts.dpBufferManager.NoBuffs
     DataProducts.dpBufferManager.EmptyBuffs
+
+    DpCompression.dpZLibCompressorBufferManager.TotalBuffs
+    DpCompression.dpZLibCompressorBufferManager.CurrBuffs
+    DpCompression.dpZLibCompressorBufferManager.HiBuffs
+    DpCompression.dpZLibCompressorBufferManager.NoBuffs
+    DpCompression.dpZLibCompressorBufferManager.EmptyBuffs
   }
 
   packet Version1 id 22 group 2 {

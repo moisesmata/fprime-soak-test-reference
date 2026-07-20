@@ -19,6 +19,7 @@ module FprimeSoakTestReference {
     import CdhCore.Subtopology
     import ComCcsds.Subtopology
     import DataProducts.Subtopology
+    import DpCompression.Subtopology
     import FileHandling.Subtopology
     import MpuImu.Subtopology
     import Bmp280.Subtopology
@@ -129,6 +130,7 @@ module FprimeSoakTestReference {
       rateGroup3.RateGroupMemberOut[3] -> DataProducts.dpBufferManager.schedIn
       rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpWriter.schedIn
       rateGroup3.RateGroupMemberOut[5] -> DataProducts.dpMgr.schedIn
+      rateGroup3.RateGroupMemberOut[6] -> DpCompression.Subtopology.dpZLibBufferManagerSchedIn
 
       # Rate group 4 (100Hz): IMU sensor read. The blocking-I2C read runs here with
       # a 10ms cycle budget, isolated from the 1kHz command path.
@@ -150,6 +152,9 @@ module FprimeSoakTestReference {
        # Application component produces data products (synchronous buffer request)
        sensorDataProducer.productGetOut  -> DataProducts.Subtopology.productGetIn
        sensorDataProducer.productSendOut -> DataProducts.Subtopology.productSendIn
+
+       # Processing bit 0 routes marked containers through zlib compression.
+       DataProducts.dpWriter.procBufferSendOut[0] -> DpCompression.Subtopology.dpCompressProcIn
     }
 
   }

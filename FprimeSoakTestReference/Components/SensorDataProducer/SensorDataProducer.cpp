@@ -28,7 +28,11 @@ Fw::TimeValue toTimeValue(const Fw::Time& time) {
 // ----------------------------------------------------------------------
 
 SensorDataProducer::SensorDataProducer(const char* const compName)
-    : SensorDataProducerComponentBase(compName), m_dpInProgress(false), m_records(0) {}
+    : SensorDataProducerComponentBase(compName),
+      m_head(0),
+      m_count(0),
+      m_writingEnabled(false),
+      m_droppedRecords(0) {}
 
 SensorDataProducer::~SensorDataProducer() {}
 
@@ -37,126 +41,107 @@ SensorDataProducer::~SensorDataProducer() {}
 // ----------------------------------------------------------------------
 
 void SensorDataProducer::bmpDataIn_handler(FwIndexType portNum, const Bmp280::Bmp280Data& data) {
-
-    // Open a container lazily so we only request a buffer when there is data
-    if (!this->ensureContainerOpen()) {
-        return;
-    }
-
-    // Build a timestamped BMP record.
-    BmpSensorData record;
-    record.set_timeTag(toTimeValue(this->getTime()));
-    record.set_pressure(data.get_pressure());
-    record.set_temperature(data.get_temperature());
-    record.set_altitude(data.get_altitude());
-
-    const Fw::SerializeStatus stat = this->m_container.serializeRecord_BmpRecord(record);
-    if (Fw::FW_SERIALIZE_NO_ROOM_LEFT == stat) {
-        // No room for this record: send what we have and start a fresh container
-        this->closeAndSendContainer();
-        if (this->ensureContainerOpen()) {
-            (void)this->m_container.serializeRecord_BmpRecord(record);
-            this->recordWritten();
-        }
-    } else {
-        FW_ASSERT(Fw::FW_SERIALIZE_OK == stat, static_cast<FwAssertArgType>(stat));
-        this->recordWritten();
-    }
+    RingEntry entry;
+    entry.type = RECORD_BMP;
+    entry.bmp.set_timeTag(toTimeValue(this->getTime()));
+    entry.bmp.set_pressure(data.get_pressure());
+    entry.bmp.set_temperature(data.get_temperature());
+    entry.bmp.set_altitude(data.get_altitude());
+    this->pushEntry(entry);
 }
 
 void SensorDataProducer::imuDataIn_handler(FwIndexType portNum, const MpuImu::ImuData& data) {
-
-    // Open a container lazily so we only request a buffer when there is data
-    if (!this->ensureContainerOpen()) {
-        return;
-    }
-
-    // Build a timestamped IMU record. Records carry no implicit time, so we tag
-    // each sample with the current time.
-    ImuSensorData record;
-    record.set_timeTag(toTimeValue(this->getTime()));
-    record.set_temperature(data.get_temperature());
-    record.set_acceleration(data.get_acceleration());
-    record.set_rotation(data.get_rotation());
-
-    const Fw::SerializeStatus stat = this->m_container.serializeRecord_ImuRecord(record);
-    if (Fw::FW_SERIALIZE_NO_ROOM_LEFT == stat) {
-        // No room for this record: send what we have and start a fresh container
-        this->closeAndSendContainer();
-        if (this->ensureContainerOpen()) {
-            (void)this->m_container.serializeRecord_ImuRecord(record);
-            this->recordWritten();
-        }
-    } else {
-        FW_ASSERT(Fw::FW_SERIALIZE_OK == stat, static_cast<FwAssertArgType>(stat));
-        this->recordWritten();
-    }
+    RingEntry entry;
+    entry.type = RECORD_IMU;
+    entry.imu.set_timeTag(toTimeValue(this->getTime()));
+    entry.imu.set_temperature(data.get_temperature());
+    entry.imu.set_acceleration(data.get_acceleration());
+    entry.imu.set_rotation(data.get_rotation());
+    this->pushEntry(entry);
 }
 
 void SensorDataProducer::run_handler(FwIndexType portNum, U32 context) {
-    // Fill-only policy: containers are sent exclusively from recordWritten() once
-    // they reach RECORDS_PER_CONTAINER. The run tick performs no flushing, so a
-    // partially filled container is held until it fills. Note: any trailing
-    // records in an open container are not sent on shutdown.
+    // Fill-only policy: scheduled ticks never flush partial rings.
 }
 
 // ----------------------------------------------------------------------
-// Helper functions
+// Command handler implementations
 // ----------------------------------------------------------------------
 
-bool SensorDataProducer::openContainer() {
-    // Data products must be available before we attempt to allocate a buffer
-    if (!this->isConnected_productGetOut_OutputPort(0) || !this->isConnected_productSendOut_OutputPort(0)) {
-        this->log_WARNING_HI_DpsNotConnected();
-        return false;
+void SensorDataProducer::START_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
+    this->m_writingEnabled = true;
+    this->tlmWrite_WritingEnabled(this->m_writingEnabled);
+    this->log_ACTIVITY_HI_WritingStarted();
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
+void SensorDataProducer::STOP_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
+    this->m_writingEnabled = false;
+    this->tlmWrite_WritingEnabled(this->m_writingEnabled);
+    this->log_ACTIVITY_HI_WritingStopped();
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
+// ----------------------------------------------------------------------
+// Ring buffer helpers
+// ----------------------------------------------------------------------
+
+void SensorDataProducer::pushEntry(const RingEntry& entry) {
+    if (this->m_count == RECORDS_PER_CONTAINER) {
+        this->m_ring[this->m_head] = entry;
+        this->m_head = (this->m_head + 1U) % RECORDS_PER_CONTAINER;
+        this->m_droppedRecords++;
+        this->tlmWrite_DroppedRecords(this->m_droppedRecords);
+    } else {
+        const U32 tail = (this->m_head + this->m_count) % RECORDS_PER_CONTAINER;
+        this->m_ring[tail] = entry;
+        this->m_count++;
     }
 
-    // Size the buffer to hold RECORDS_PER_CONTAINER records of whichever record
-    // type is larger. Each record carries its serialized payload plus a record ID
-    // (sizeof(FwDpIdType)); the record ID size is not automatically included in the
-    // container data size because the number and types of records are up to us.
+    this->tlmWrite_DpRecords(this->m_count);
+    if (this->m_writingEnabled && (this->m_count == RECORDS_PER_CONTAINER)) {
+        this->flushRing();
+    }
+}
+
+void SensorDataProducer::flushRing() {
+    if (!this->isConnected_productGetOut_OutputPort(0) || !this->isConnected_productSendOut_OutputPort(0)) {
+        this->log_WARNING_HI_DpsNotConnected();
+        return;
+    }
+
     const FwSizeType bmpRecordSize = BmpSensorData::SERIALIZED_SIZE + sizeof(FwDpIdType);
     const FwSizeType imuRecordSize = ImuSensorData::SERIALIZED_SIZE + sizeof(FwDpIdType);
     const FwSizeType maxRecordSize = (bmpRecordSize > imuRecordSize) ? bmpRecordSize : imuRecordSize;
     const FwSizeType dpSize = RECORDS_PER_CONTAINER * maxRecordSize;
 
-    // Allocation may fail due to memory pressure; handle that case gracefully.
-    const Fw::Success status = this->dpGet_SensorDataContainer(dpSize, this->m_container);
+    DpContainer container;
+    const Fw::Success status = this->dpGet_SensorDataContainer(dpSize, container);
     if (Fw::Success::FAILURE == status) {
         this->log_WARNING_HI_DpMemoryFail();
-        return false;
+        return;
     }
 
-    this->m_dpInProgress = true;
-    this->m_records = 0;
+    // DpWriter processing port 0 is connected to the zlib compression processor.
+    container.setProcTypes(static_cast<Fw::DpCfg::ProcType::SerialType>(1U));
     this->log_ACTIVITY_LO_DpStarted();
-    return true;
-}
 
-bool SensorDataProducer::ensureContainerOpen() {
-    if (this->m_dpInProgress) {
-        return true;
+    for (U32 i = 0; i < this->m_count; i++) {
+        const RingEntry& entry = this->m_ring[(this->m_head + i) % RECORDS_PER_CONTAINER];
+        Fw::SerializeStatus stat = Fw::FW_SERIALIZE_OK;
+        if (entry.type == RECORD_BMP) {
+            stat = container.serializeRecord_BmpRecord(entry.bmp);
+        } else {
+            stat = container.serializeRecord_ImuRecord(entry.imu);
+        }
+        FW_ASSERT(Fw::FW_SERIALIZE_OK == stat, static_cast<FwAssertArgType>(stat));
     }
-    return this->openContainer();
-}
 
-void SensorDataProducer::recordWritten() {
-    this->m_records++;
-    this->tlmWrite_DpRecords(this->m_records);
-
-    if (this->m_records >= RECORDS_PER_CONTAINER) {
-        this->closeAndSendContainer();
-    }
-}
-
-void SensorDataProducer::closeAndSendContainer() {
-    this->log_ACTIVITY_LO_DpComplete(this->m_records);
-    // The container is framework-owned after sending; we must not touch it again
-    // until a new one is allocated.
-    this->dpSend(this->m_container);
-    this->m_dpInProgress = false;
-    this->m_records = 0;
-    this->tlmWrite_DpRecords(this->m_records);
+    this->log_ACTIVITY_LO_DpComplete(this->m_count);
+    this->dpSend(container);
+    this->m_head = 0;
+    this->m_count = 0;
+    this->tlmWrite_DpRecords(this->m_count);
 }
 
 }  // namespace Components

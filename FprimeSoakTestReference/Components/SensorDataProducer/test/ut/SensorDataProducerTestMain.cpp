@@ -6,24 +6,24 @@
 
 #include "SensorDataProducerTester.hpp"
 
-TEST(Nominal, BmpReadingWritesRecord) {
+TEST(Nominal, BootStoppedBuffers) {
     Components::SensorDataProducerTester tester;
-    tester.testBmpReadingWritesRecord();
+    tester.testBootStoppedBuffers();
 }
 
-TEST(Nominal, ImuReadingWritesRecord) {
+TEST(Nominal, StoppedRingDropsOldest) {
     Components::SensorDataProducerTester tester;
-    tester.testImuReadingWritesRecord();
+    tester.testStoppedRingDropsOldest();
 }
 
-TEST(Nominal, ContainerSendsWhenFull) {
+TEST(Nominal, StartFlushesFullRing) {
     Components::SensorDataProducerTester tester;
-    tester.testContainerSendsWhenFull();
+    tester.testStartFlushesFullRing();
 }
 
-TEST(Nominal, RunFlushesPartialContainer) {
+TEST(Nominal, StopHaltsWriting) {
     Components::SensorDataProducerTester tester;
-    tester.testRunFlushesPartialContainer();
+    tester.testStopHaltsWriting();
 }
 
 TEST(OffNominal, AllocationFailure) {

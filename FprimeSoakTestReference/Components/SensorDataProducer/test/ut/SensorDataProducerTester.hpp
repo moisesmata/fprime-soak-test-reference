@@ -32,19 +32,19 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
     // Tests
     // ----------------------------------------------------------------------
 
-    //! A BMP reading opens a container and writes a BMP record
-    void testBmpReadingWritesRecord();
+    //! The component boots stopped and buffers without allocating
+    void testBootStoppedBuffers();
 
-    //! An IMU reading opens a container and writes an IMU record
-    void testImuReadingWritesRecord();
+    //! A full stopped ring drops its oldest records
+    void testStoppedRingDropsOldest();
 
-    //! Records accumulate and the container is sent once full
-    void testContainerSendsWhenFull();
+    //! START enables writing and a full ring is sent
+    void testStartFlushesFullRing();
 
-    //! The run port flushes a partially filled container
-    void testRunFlushesPartialContainer();
+    //! STOP disables writing again
+    void testStopHaltsWriting();
 
-    //! Allocation failure is handled gracefully
+    //! Allocation failure retains buffered records
     void testAllocationFailure();
 
   private:
