@@ -22,7 +22,7 @@ Fw::MallocAllocator mallocator;
 //   rateGroup1 = 100/1   = 100Hz (10ms)  - command sequencer
 //   rateGroup2 = 100/10  =  10Hz (100ms) - sensors (BMP, IMU), TlmPacketizer, comms, file downlink
 //   rateGroup3 = 100/100 =   1Hz (1s)    - housekeeping / health / data-product services
-Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {10, 0}, {100, 0}}};
+Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 0}}};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.
