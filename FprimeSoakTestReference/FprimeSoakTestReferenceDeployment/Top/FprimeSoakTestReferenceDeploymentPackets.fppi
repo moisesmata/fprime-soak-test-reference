@@ -177,7 +177,7 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
   }
   
   packet Sensor_Readings id 38 group 2  {
-    # Bmp280.bmpManager.Reading
+    Bmp280.bmpManager.Reading
     MpuImu.imuManager.Reading
   }
 
@@ -190,5 +190,5 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
   CdhCore.tlmSend.SectionEnabled
 
   # Omit low-level driver telemetry
-  # Bmp280.bmpDriver.SPI_Bytes
+  Bmp280.bmpDriver.SPI_Bytes
 }
