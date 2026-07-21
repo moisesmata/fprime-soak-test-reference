@@ -7,8 +7,10 @@
 // sensor data pushed from BmpManager and ImuManager and produces data products following
 // https://fprime.jpl.nasa.gov/latest/docs/how-to/data-products/
 //
-// BMP and IMU samples are stored as separate record types (BmpRecord and
-// ImuRecord) within a single shared container.
+// Production is gated by the START/STOP commands. While started, BMP and IMU
+// samples are serialized as records (BmpRecord and ImuRecord) into a shared
+// container, which is sent as soon as it fills. STOP sends any partially
+// filled container.
 // ======================================================================
 
 #include "FprimeSoakTestReference/Components/SensorDataProducer/SensorDataProducer.hpp"
@@ -28,7 +30,7 @@ Fw::TimeValue toTimeValue(const Fw::Time& time) {
 // ----------------------------------------------------------------------
 
 SensorDataProducer::SensorDataProducer(const char* const compName)
-    : SensorDataProducerComponentBase(compName), m_dpInProgress(false), m_records(0) {}
+    : SensorDataProducerComponentBase(compName), m_active(false), m_dpInProgress(false), m_records(0) {}
 
 SensorDataProducer::~SensorDataProducer() {}
 
@@ -37,6 +39,10 @@ SensorDataProducer::~SensorDataProducer() {}
 // ----------------------------------------------------------------------
 
 void SensorDataProducer::bmpDataIn_handler(FwIndexType portNum, const Bmp280::Bmp280Data& data) {
+    // Production is command-gated: drop samples until START is received
+    if (!this->m_active) {
+        return;
+    }
 
     // Open a container lazily so we only request a buffer when there is data
     if (!this->ensureContainerOpen()) {
@@ -65,6 +71,10 @@ void SensorDataProducer::bmpDataIn_handler(FwIndexType portNum, const Bmp280::Bm
 }
 
 void SensorDataProducer::imuDataIn_handler(FwIndexType portNum, const MpuImu::ImuData& data) {
+    // Production is command-gated: drop samples until START is received
+    if (!this->m_active) {
+        return;
+    }
 
     // Open a container lazily so we only request a buffer when there is data
     if (!this->ensureContainerOpen()) {
@@ -93,11 +103,27 @@ void SensorDataProducer::imuDataIn_handler(FwIndexType portNum, const MpuImu::Im
     }
 }
 
-void SensorDataProducer::run_handler(FwIndexType portNum, U32 context) {
-    // Fill-only policy: containers are sent exclusively from recordWritten() once
-    // they reach RECORDS_PER_CONTAINER. The run tick performs no flushing, so a
-    // partially filled container is held until it fills. Note: any trailing
-    // records in an open container are not sent on shutdown.
+// ----------------------------------------------------------------------
+// Handler implementations for commands
+// ----------------------------------------------------------------------
+
+void SensorDataProducer::START_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
+    this->m_active = true;
+    this->tlmWrite_DpActive(true);
+    this->log_ACTIVITY_HI_DpProductionStarted();
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
+}
+
+void SensorDataProducer::STOP_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
+    this->m_active = false;
+    // Send whatever has accumulated; an open container always holds at least
+    // one record because containers are opened lazily on the first sample.
+    if (this->m_dpInProgress) {
+        this->closeAndSendContainer();
+    }
+    this->tlmWrite_DpActive(false);
+    this->log_ACTIVITY_HI_DpProductionStopped();
+    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 
 // ----------------------------------------------------------------------

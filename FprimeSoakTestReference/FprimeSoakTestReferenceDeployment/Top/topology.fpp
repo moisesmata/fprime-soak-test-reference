@@ -8,7 +8,6 @@ module FprimeSoakTestReference {
     rateGroup1
     rateGroup2
     rateGroup3
-    rateGroup4
   }
 
   topology FprimeSoakTestReferenceDeployment {
@@ -30,7 +29,6 @@ module FprimeSoakTestReference {
     instance rateGroup1
     instance rateGroup2
     instance rateGroup3
-    instance rateGroup4
     instance rateGroupDriver
     instance systemResources
     instance timer
@@ -110,16 +108,14 @@ module FprimeSoakTestReference {
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
       rateGroup1.RateGroupMemberOut[0] -> cmdSeq.schedIn
 
-      # Rate group 2 (10Hz): Slow sensor, telemetry packetization, and communications.
+      # Rate group 2 (10Hz): Sensors, telemetry packetization, and communications.
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2.CycleIn
       rateGroup2.RateGroupMemberOut[0] -> Bmp280.bmpManager.run
-      rateGroup2.RateGroupMemberOut[1] -> FileHandling.fileDownlink.Run
-      rateGroup2.RateGroupMemberOut[2] -> ComCcsds.comQueue.run
-      rateGroup2.RateGroupMemberOut[3] -> ComCcsds.aggregator.timeout
-      rateGroup2.RateGroupMemberOut[4] -> CdhCore.tlmSend.Run
-      # Flush partially-filled DP containers; RECORDS_PER_CONTAINER handles normal
-      # batching of the sensor stream (currently a no-op under the fill-only policy).
-      rateGroup2.RateGroupMemberOut[5] -> sensorDataProducer.run
+      rateGroup2.RateGroupMemberOut[1] -> MpuImu.imuManager.run
+      rateGroup2.RateGroupMemberOut[2] -> FileHandling.fileDownlink.Run
+      rateGroup2.RateGroupMemberOut[3] -> ComCcsds.comQueue.run
+      rateGroup2.RateGroupMemberOut[4] -> ComCcsds.aggregator.timeout
+      rateGroup2.RateGroupMemberOut[5] -> CdhCore.tlmSend.Run
 
       # Rate group 3 (1Hz): Housekeeping and health monitoring
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup3] -> rateGroup3.CycleIn
@@ -129,11 +125,6 @@ module FprimeSoakTestReference {
       rateGroup3.RateGroupMemberOut[3] -> DataProducts.dpBufferManager.schedIn
       rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpWriter.schedIn
       rateGroup3.RateGroupMemberOut[5] -> DataProducts.dpMgr.schedIn
-
-      # Rate group 4 (100Hz): IMU sensor read. The blocking-I2C read runs here with
-      # a 10ms cycle budget, isolated from the 1kHz command path.
-      rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup4] -> rateGroup4.CycleIn
-      rateGroup4.RateGroupMemberOut[0] -> MpuImu.imuManager.run
     }
 
     connections CdhCore_cmdSeq {

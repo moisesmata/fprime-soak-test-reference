@@ -52,7 +52,6 @@ namespace PingEntries {
     namespace FprimeSoakTestReference_rateGroup1 {enum { WARN = 3, FATAL = 5 };}
     namespace FprimeSoakTestReference_rateGroup2 {enum { WARN = 3, FATAL = 5 };}
     namespace FprimeSoakTestReference_rateGroup3 {enum { WARN = 3, FATAL = 5 };}
-    namespace FprimeSoakTestReference_rateGroup4 {enum { WARN = 3, FATAL = 5 };}
     namespace FprimeSoakTestReference_cmdSeq {enum { WARN = 3, FATAL = 5 };}
 }  // namespace PingEntries
 

@@ -33,13 +33,21 @@ module Components {
         # ----------------------------------------------------------------------
 
         @ Port for receiving Bmp280 sensor data
-        sync input port bmpDataIn: Bmp280.Bmp280DataOut
+        guarded input port bmpDataIn: Bmp280.Bmp280DataOut
 
         @ Port for receiving IMU sensor data
-        sync input port imuDataIn: MpuImu.ImuDataOut
+        guarded input port imuDataIn: MpuImu.ImuDataOut
 
-        @ Scheduling port used to manage the data product container lifecycle
-        sync input port run: Svc.Sched
+        # ----------------------------------------------------------------------
+        # Commands
+        # ----------------------------------------------------------------------
+
+        @ Start serializing sensor data into data product containers. Each
+        @ container is sent as soon as it fills.
+        guarded command START
+
+        @ Stop serializing sensor data. Any partially filled container is sent.
+        guarded command STOP
 
         # ----------------------------------------------------------------------
         # Data products
@@ -60,6 +68,9 @@ module Components {
 
         @ Number of records written into the current data product container
         telemetry DpRecords: U32
+
+        @ Whether sensor data is being serialized into data products
+        telemetry DpActive: bool
 
         # ----------------------------------------------------------------------
         # Events
@@ -86,6 +97,16 @@ module Components {
             format "Data product ports are not connected" \
             throttle 5
 
+        @ Data product production was started by command
+        event DpProductionStarted \
+            severity activity high \
+            format "Sensor data product production started"
+
+        @ Data product production was stopped by command
+        event DpProductionStopped \
+            severity activity high \
+            format "Sensor data product production stopped"
+
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
         ###############################################################################
@@ -100,6 +121,15 @@ module Components {
 
         @ Text event port
         text event port LogText
+
+        @ Command receive port
+        command recv port CmdDisp
+
+        @ Command registration port
+        command reg port CmdReg
+
+        @ Command response port
+        command resp port CmdStatus
 
         @ Data product get port (synchronous buffer allocation)
         product get port productGetOut

@@ -20,17 +20,15 @@ Fw::MallocAllocator mallocator;
 
 // The topology divides the incoming clock signal (1KHz) into sub-signals with 0 offset:
 //   rateGroup1 = 1000/1    = 1000Hz (1ms)  - command sequencer (fast dispatch, no blocking work)
-//   rateGroup2 = 1000/100  =   10Hz (100ms)- slow sensor (BMP), TlmPacketizer, comms, file downlink
+//   rateGroup2 = 1000/100  =   10Hz (100ms)- sensors (BMP, IMU), TlmPacketizer, comms, file downlink
 //   rateGroup3 = 1000/1000 =    1Hz (1s)   - housekeeping / health / data-product services
-//   rateGroup4 = 1000/10   =  100Hz (10ms) - IMU sensor read (blocking I2C)
-Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 0}, {10, 0}}};
+Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 0}}};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The
 // reference topology sets each token to zero as these contexts are unused in this project.
 U32 rateGroup1Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
 U32 rateGroup2Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
 U32 rateGroup3Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
-U32 rateGroup4Context[Svc::ActiveRateGroup::CONNECTION_COUNT_MAX] = {};
 
 enum TopologyConstants {
     COMM_PRIORITY = 34,
@@ -51,7 +49,6 @@ void configureTopology() {
     rateGroup1.configure(rateGroup1Context, FW_NUM_ARRAY_ELEMENTS(rateGroup1Context));
     rateGroup2.configure(rateGroup2Context, FW_NUM_ARRAY_ELEMENTS(rateGroup2Context));
     rateGroup3.configure(rateGroup3Context, FW_NUM_ARRAY_ELEMENTS(rateGroup3Context));
-    rateGroup4.configure(rateGroup4Context, FW_NUM_ARRAY_ELEMENTS(rateGroup4Context));
 
     // Command sequencer needs to allocate memory to hold contents of command sequences
     cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);

@@ -37,8 +37,15 @@ class SensorDataProducer final : public SensorDataProducerComponentBase {
     //! Handler for IMU data pushed from ImuManager
     void imuDataIn_handler(FwIndexType portNum, const MpuImu::ImuData& data) override;
 
-    //! Handler for the scheduling (rate group) input
-    void run_handler(FwIndexType portNum, U32 context) override;
+    // ----------------------------------------------------------------------
+    // Handler implementations for commands
+    // ----------------------------------------------------------------------
+
+    //! Handler for command START: begin serializing sensor data into containers
+    void START_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
+
+    //! Handler for command STOP: stop serializing and send any partial container
+    void STOP_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
 
     // ----------------------------------------------------------------------
     // Helper functions
@@ -65,6 +72,8 @@ class SensorDataProducer final : public SensorDataProducerComponentBase {
 
     //! The data product container being filled
     DpContainer m_container;
+    //! Whether serialization has been enabled by the START command
+    bool m_active;
     //! Whether a container is currently open for writing
     bool m_dpInProgress;
     //! Number of records written into the open container

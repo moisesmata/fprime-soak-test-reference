@@ -6,6 +6,11 @@
 
 #include "SensorDataProducerTester.hpp"
 
+TEST(Nominal, InactiveDropsData) {
+    Components::SensorDataProducerTester tester;
+    tester.testInactiveDropsData();
+}
+
 TEST(Nominal, BmpReadingWritesRecord) {
     Components::SensorDataProducerTester tester;
     tester.testBmpReadingWritesRecord();
@@ -21,9 +26,9 @@ TEST(Nominal, ContainerSendsWhenFull) {
     tester.testContainerSendsWhenFull();
 }
 
-TEST(Nominal, RunFlushesPartialContainer) {
+TEST(Nominal, StopSendsPartialContainer) {
     Components::SensorDataProducerTester tester;
-    tester.testRunFlushesPartialContainer();
+    tester.testStopSendsPartialContainer();
 }
 
 TEST(OffNominal, AllocationFailure) {

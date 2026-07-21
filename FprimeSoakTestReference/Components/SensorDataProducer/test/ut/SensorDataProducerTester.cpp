@@ -29,6 +29,23 @@ SensorDataProducerTester::~SensorDataProducerTester() {}
 // Helpers
 // ----------------------------------------------------------------------
 
+void SensorDataProducerTester::sendStart() {
+    this->clearHistory();
+    this->sendCmd_START(0, 0);
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_START, 0, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpProductionStarted_SIZE(1);
+    this->clearHistory();
+}
+
+void SensorDataProducerTester::sendStop() {
+    this->clearHistory();
+    this->sendCmd_STOP(0, 0);
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_STOP, 0, Fw::CmdResponse::OK);
+    ASSERT_EVENTS_DpProductionStopped_SIZE(1);
+}
+
 void SensorDataProducerTester::pushBmp(F32 pressure, F32 temperature) {
     Bmp280::Bmp280Data bmp;
     bmp.set_pressure(pressure);
@@ -58,12 +75,31 @@ Fw::Success::T SensorDataProducerTester::productGet_handler(FwDpIdType id, FwSiz
 // Tests
 // ----------------------------------------------------------------------
 
+void SensorDataProducerTester::testInactiveDropsData() {
+    // Before START, sensor data must not open a container or write records
+    this->pushBmp(101000.0f, 25.0f);
+    this->pushImu(30.0f);
+
+    ASSERT_PRODUCT_GET_SIZE(0);
+    ASSERT_PRODUCT_SEND_SIZE(0);
+    ASSERT_TLM_DpRecords_SIZE(0);
+
+    // The same holds after a START/STOP cycle
+    this->sendStart();
+    this->sendStop();
+    this->clearHistory();
+    this->pushBmp(101000.0f, 25.0f);
+    ASSERT_PRODUCT_GET_SIZE(0);
+    ASSERT_PRODUCT_SEND_SIZE(0);
+}
+
 void SensorDataProducerTester::testBmpReadingWritesRecord() {
+    this->sendStart();
+
     // A single BMP reading opens a container, writes one record, and publishes telemetry
     this->pushBmp(101000.0f, 25.0f);
 
     ASSERT_PRODUCT_GET_SIZE(1);
-    ASSERT_TLM_BmpData_SIZE(1);
     ASSERT_TLM_DpRecords(0, 1);
     ASSERT_EVENTS_DpStarted_SIZE(1);
     // Not full yet, so nothing sent
@@ -71,11 +107,12 @@ void SensorDataProducerTester::testBmpReadingWritesRecord() {
 }
 
 void SensorDataProducerTester::testImuReadingWritesRecord() {
+    this->sendStart();
+
     // A single IMU reading opens a container, writes one record, and publishes telemetry
     this->pushImu(30.0f);
 
     ASSERT_PRODUCT_GET_SIZE(1);
-    ASSERT_TLM_ImuData_SIZE(1);
     ASSERT_TLM_DpRecords(0, 1);
     ASSERT_EVENTS_DpStarted_SIZE(1);
     // Not full yet, so nothing sent
@@ -83,6 +120,8 @@ void SensorDataProducerTester::testImuReadingWritesRecord() {
 }
 
 void SensorDataProducerTester::testContainerSendsWhenFull() {
+    this->sendStart();
+
     // Interleave BMP and IMU readings. Both record types share one container and
     // one counter, so RECORDS_PER_CONTAINER total records fill it regardless of type.
     for (U32 i = 0; i < SensorDataProducer::RECORDS_PER_CONTAINER; i++) {
@@ -101,31 +140,42 @@ void SensorDataProducerTester::testContainerSendsWhenFull() {
 
     // State resets after the send: the counter telemetry ends at 0
     ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, 0);
-}
 
-void SensorDataProducerTester::testRunFlushesPartialContainer() {
-    // One BMP record opens a container but does not fill it
+    // Production continues: the next reading opens a fresh container
+    this->clearHistory();
     this->pushBmp(101000.0f, 25.0f);
     ASSERT_PRODUCT_GET_SIZE(1);
-    ASSERT_PRODUCT_SEND_SIZE(0);
     ASSERT_TLM_DpRecords(0, 1);
+}
 
-    // The scheduled run flushes the partial container
-    this->invoke_to_run(0, 0);
+void SensorDataProducerTester::testStopSendsPartialContainer() {
+    this->sendStart();
+
+    // Write a few records without filling the container
+    this->pushBmp(101000.0f, 25.0f);
+    this->pushImu(30.0f);
+    this->pushImu(31.0f);
+    ASSERT_PRODUCT_GET_SIZE(1);
+    ASSERT_PRODUCT_SEND_SIZE(0);
+    ASSERT_TLM_DpRecords(2, 3);
+
+    // STOP sends the partial container
+    this->sendStop();
     ASSERT_PRODUCT_SEND_SIZE(1);
     ASSERT_EVENTS_DpComplete_SIZE(1);
-    ASSERT_EVENTS_DpComplete(0, 1);
+    ASSERT_EVENTS_DpComplete(0, 3);
 
-    // Counter resets to 0 after the flush
+    // Counter resets to 0 after the send
     ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, 0);
 
-    // A subsequent run with no new data does nothing
-    this->clearHistory();
-    this->invoke_to_run(0, 0);
+    // A STOP with no open container sends nothing
+    this->sendStop();
     ASSERT_PRODUCT_SEND_SIZE(0);
 }
 
 void SensorDataProducerTester::testAllocationFailure() {
+    this->sendStart();
+
     // Simulate a failed buffer allocation
     this->m_getStatus = Fw::Success::FAILURE;
     this->pushBmp(101000.0f, 25.0f);

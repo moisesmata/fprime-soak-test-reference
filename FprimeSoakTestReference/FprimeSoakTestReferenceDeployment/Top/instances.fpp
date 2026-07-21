@@ -41,13 +41,6 @@ module FprimeSoakTestReference {
     stack size Default.STACK_SIZE \
     priority 41
 
-  # 100Hz rate group for the IMU sensor read. Priority sits between the 1kHz
-  # rateGroup1 (44) and the 10Hz rateGroup2 (42), per rate-monotonic ordering.
-  instance rateGroup4: Svc.ActiveRateGroup base id 0x10005000 \
-    queue size Default.QUEUE_SIZE \
-    stack size Default.STACK_SIZE \
-    priority 43
-
   instance cmdSeq: Svc.CmdSequencer base id 0x10004000 \
     queue size Default.QUEUE_SIZE \
     stack size Default.STACK_SIZE \

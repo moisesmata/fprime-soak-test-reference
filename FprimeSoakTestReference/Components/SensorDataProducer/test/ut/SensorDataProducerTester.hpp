@@ -15,11 +15,11 @@ namespace Components {
 class SensorDataProducerTester : public SensorDataProducerGTestBase {
   public:
     // Maximum size of histories storing events, telemetry, and port outputs
-    static const FwSizeType MAX_HISTORY_SIZE = 100;
+    static const FwSizeType MAX_HISTORY_SIZE = 300;
     // Instance ID supplied to the component instance under test
     static const FwEnumStoreType TEST_INSTANCE_ID = 0;
     // Backing store size for a requested data product buffer
-    static const FwSizeType DP_BUFFER_SIZE = 4096;
+    static const FwSizeType DP_BUFFER_SIZE = 8192;
 
     //! Construct object SensorDataProducerTester
     SensorDataProducerTester();
@@ -32,17 +32,20 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
     // Tests
     // ----------------------------------------------------------------------
 
-    //! A BMP reading opens a container and writes a BMP record
+    //! Sensor data is dropped until the START command is received
+    void testInactiveDropsData();
+
+    //! After START, a BMP reading opens a container and writes a BMP record
     void testBmpReadingWritesRecord();
 
-    //! An IMU reading opens a container and writes an IMU record
+    //! After START, an IMU reading opens a container and writes an IMU record
     void testImuReadingWritesRecord();
 
     //! Records accumulate and the container is sent once full
     void testContainerSendsWhenFull();
 
-    //! The run port flushes a partially filled container
-    void testRunFlushesPartialContainer();
+    //! STOP sends a partially filled container and disables production
+    void testStopSendsPartialContainer();
 
     //! Allocation failure is handled gracefully
     void testAllocationFailure();
@@ -57,6 +60,12 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
 
     //! Initialize components
     void initComponents();
+
+    //! Send the START command and verify an OK response
+    void sendStart();
+
+    //! Send the STOP command and verify an OK response
+    void sendStop();
 
     //! Push one BMP reading into the component
     void pushBmp(F32 pressure, F32 temperature);
