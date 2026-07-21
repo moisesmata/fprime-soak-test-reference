@@ -33,23 +33,13 @@ module Components {
         # ----------------------------------------------------------------------
 
         @ Port for receiving Bmp280 sensor data
-        guarded input port bmpDataIn: Bmp280.Bmp280DataOut
+        sync input port bmpDataIn: Bmp280.Bmp280DataOut
 
         @ Port for receiving IMU sensor data
-        guarded input port imuDataIn: MpuImu.ImuDataOut
+        sync input port imuDataIn: MpuImu.ImuDataOut
 
         @ Scheduling port used to manage the data product container lifecycle
-        guarded input port run: Svc.Sched
-
-        # ----------------------------------------------------------------------
-        # Commands
-        # ----------------------------------------------------------------------
-
-        @ Enable writing full data product containers to disk
-        guarded command START
-
-        @ Disable writing and retain only the latest records in memory
-        guarded command STOP
+        sync input port run: Svc.Sched
 
         # ----------------------------------------------------------------------
         # Data products
@@ -70,12 +60,6 @@ module Components {
 
         @ Number of records written into the current data product container
         telemetry DpRecords: U32
-
-        @ Whether full data product containers are being sent for disk writing
-        telemetry WritingEnabled: bool
-
-        @ Number of records discarded while the in-memory ring was full
-        telemetry DroppedRecords: U32
 
         # ----------------------------------------------------------------------
         # Events
@@ -102,16 +86,6 @@ module Components {
             format "Data product ports are not connected" \
             throttle 5
 
-        @ Data product disk writing was enabled
-        event WritingStarted \
-            severity activity high \
-            format "Sensor data product writing started"
-
-        @ Data product disk writing was disabled
-        event WritingStopped \
-            severity activity high \
-            format "Sensor data product writing stopped"
-
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
         ###############################################################################
@@ -126,15 +100,6 @@ module Components {
 
         @ Text event port
         text event port LogText
-
-        @ Command receive port
-        command recv port CmdDisp
-
-        @ Command registration port
-        command reg port CmdReg
-
-        @ Command response port
-        command resp port CmdStatus
 
         @ Data product get port (synchronous buffer allocation)
         product get port productGetOut

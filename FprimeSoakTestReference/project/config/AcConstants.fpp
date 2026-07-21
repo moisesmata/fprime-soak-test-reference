@@ -54,21 +54,13 @@ constant DpManagerNumPorts = 5
 constant DpWriterNumProcPorts = 5
 
 @ The size of a file name string
-constant FileNameStringSize = 240
+constant FileNameStringSize = 200
 
 @ The size of an assert text string
 constant FwAssertTextSize = 256
 
-@ The size of a file name in an AssertFatalAdapter event (leading-truncation)
+@ The size of a file name in an AssertFatalAdapter event
 @ Note: File names in assertion failures are also truncated by
-@ the constants FwAssertTextSize (in this file) and FW_LOG_STRING_MAX_SIZE.
-@ Set smaller than FwAssertTextSize so there is room for the timestamp and
-@ assertion arguments in the log message.
+@ the constants FW_ASSERT_TEXT_SIZE and FW_LOG_STRING_MAX_SIZE, set
+@ in FpConfig.h.
 constant AssertFatalAdapterEventFileSize = FileNameStringSize
-
-@ The maximum size in bytes for passing sequence arguments through CmdSeqIn ports
-@ Note: This must fit within FW_CMD_ARG_BUFFER_MAX_SIZE along with command arguments
-@ Evaluated from the framework defaults for this deployment. Configuration
-@ override inputs must remain self-contained because consumers may import only
-@ AcConstants.fpp.
-constant SequenceArgumentsMaxSize = 255

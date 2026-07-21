@@ -58,35 +58,33 @@ Fw::Success::T SensorDataProducerTester::productGet_handler(FwDpIdType id, FwSiz
 // Tests
 // ----------------------------------------------------------------------
 
-void SensorDataProducerTester::testBootStoppedBuffers() {
+void SensorDataProducerTester::testBmpReadingWritesRecord() {
+    // A single BMP reading opens a container, writes one record, and publishes telemetry
     this->pushBmp(101000.0f, 25.0f);
 
-    ASSERT_PRODUCT_GET_SIZE(0);
-    ASSERT_PRODUCT_SEND_SIZE(0);
+    ASSERT_PRODUCT_GET_SIZE(1);
+    ASSERT_TLM_BmpData_SIZE(1);
     ASSERT_TLM_DpRecords(0, 1);
-    ASSERT_EVENTS_DpStarted_SIZE(0);
-}
-
-void SensorDataProducerTester::testStoppedRingDropsOldest() {
-    const U32 extraRecords = 3;
-    for (U32 i = 0; i < SensorDataProducer::RECORDS_PER_CONTAINER + extraRecords; i++) {
-        this->pushBmp(101000.0f + static_cast<F32>(i), 25.0f);
-    }
-
-    ASSERT_PRODUCT_GET_SIZE(0);
+    ASSERT_EVENTS_DpStarted_SIZE(1);
+    // Not full yet, so nothing sent
     ASSERT_PRODUCT_SEND_SIZE(0);
-    ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, SensorDataProducer::RECORDS_PER_CONTAINER);
-    ASSERT_TLM_DroppedRecords_SIZE(extraRecords);
-    ASSERT_TLM_DroppedRecords(extraRecords - 1, extraRecords);
 }
 
-void SensorDataProducerTester::testStartFlushesFullRing() {
-    this->sendCmd_START(0, 42);
-    ASSERT_CMD_RESPONSE_SIZE(1);
-    ASSERT_CMD_RESPONSE(0, SensorDataProducerComponentBase::OPCODE_START, 42, Fw::CmdResponse::OK);
-    ASSERT_TLM_WritingEnabled(0, true);
-    ASSERT_EVENTS_WritingStarted_SIZE(1);
+void SensorDataProducerTester::testImuReadingWritesRecord() {
+    // A single IMU reading opens a container, writes one record, and publishes telemetry
+    this->pushImu(30.0f);
 
+    ASSERT_PRODUCT_GET_SIZE(1);
+    ASSERT_TLM_ImuData_SIZE(1);
+    ASSERT_TLM_DpRecords(0, 1);
+    ASSERT_EVENTS_DpStarted_SIZE(1);
+    // Not full yet, so nothing sent
+    ASSERT_PRODUCT_SEND_SIZE(0);
+}
+
+void SensorDataProducerTester::testContainerSendsWhenFull() {
+    // Interleave BMP and IMU readings. Both record types share one container and
+    // one counter, so RECORDS_PER_CONTAINER total records fill it regardless of type.
     for (U32 i = 0; i < SensorDataProducer::RECORDS_PER_CONTAINER; i++) {
         if ((i % 2) == 0) {
             this->pushBmp(101000.0f + static_cast<F32>(i), 25.0f);
@@ -95,40 +93,47 @@ void SensorDataProducerTester::testStartFlushesFullRing() {
         }
     }
 
+    // Records accumulate into a single container that is sent once full
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(1);
     ASSERT_EVENTS_DpComplete_SIZE(1);
     ASSERT_EVENTS_DpComplete(0, SensorDataProducer::RECORDS_PER_CONTAINER);
+
+    // State resets after the send: the counter telemetry ends at 0
     ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, 0);
 }
 
-void SensorDataProducerTester::testStopHaltsWriting() {
-    this->sendCmd_START(0, 1);
-    this->sendCmd_STOP(0, 2);
-    ASSERT_CMD_RESPONSE_SIZE(2);
-    ASSERT_CMD_RESPONSE(1, SensorDataProducerComponentBase::OPCODE_STOP, 2, Fw::CmdResponse::OK);
-    ASSERT_TLM_WritingEnabled(1, false);
-    ASSERT_EVENTS_WritingStopped_SIZE(1);
-
-    for (U32 i = 0; i < SensorDataProducer::RECORDS_PER_CONTAINER; i++) {
-        this->pushImu(30.0f + static_cast<F32>(i));
-    }
-    ASSERT_PRODUCT_GET_SIZE(0);
+void SensorDataProducerTester::testRunFlushesPartialContainer() {
+    // One BMP record opens a container but does not fill it
+    this->pushBmp(101000.0f, 25.0f);
+    ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
-    ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, SensorDataProducer::RECORDS_PER_CONTAINER);
+    ASSERT_TLM_DpRecords(0, 1);
+
+    // The scheduled run flushes the partial container
+    this->invoke_to_run(0, 0);
+    ASSERT_PRODUCT_SEND_SIZE(1);
+    ASSERT_EVENTS_DpComplete_SIZE(1);
+    ASSERT_EVENTS_DpComplete(0, 1);
+
+    // Counter resets to 0 after the flush
+    ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, 0);
+
+    // A subsequent run with no new data does nothing
+    this->clearHistory();
+    this->invoke_to_run(0, 0);
+    ASSERT_PRODUCT_SEND_SIZE(0);
 }
 
 void SensorDataProducerTester::testAllocationFailure() {
-    this->sendCmd_START(0, 0);
+    // Simulate a failed buffer allocation
     this->m_getStatus = Fw::Success::FAILURE;
-    for (U32 i = 0; i < SensorDataProducer::RECORDS_PER_CONTAINER; i++) {
-        this->pushBmp(101000.0f, 25.0f);
-    }
+    this->pushBmp(101000.0f, 25.0f);
 
+    // A buffer was requested, allocation failed, and nothing was sent
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
     ASSERT_EVENTS_DpMemoryFail_SIZE(1);
-    ASSERT_TLM_DpRecords(this->tlmHistory_DpRecords->size() - 1, SensorDataProducer::RECORDS_PER_CONTAINER);
 }
 
 }  // namespace Components

@@ -14,7 +14,7 @@ namespace Components {
 class SensorDataProducer final : public SensorDataProducerComponentBase {
   public:
     //! Number of records (BMP or IMU) accumulated before a container is closed and sent
-    static constexpr U32 RECORDS_PER_CONTAINER = 50;
+    static constexpr U32 RECORDS_PER_CONTAINER = 100;
 
     // ----------------------------------------------------------------------
     // Component construction and destruction
@@ -41,42 +41,34 @@ class SensorDataProducer final : public SensorDataProducerComponentBase {
     void run_handler(FwIndexType portNum, U32 context) override;
 
     // ----------------------------------------------------------------------
-    // Command handler implementations
+    // Helper functions
     // ----------------------------------------------------------------------
 
-    //! Enable writing full data product containers
-    void START_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
+    //! Acquire a data product buffer and open a new container
+    //! \return true if a container was opened, false otherwise
+    bool openContainer();
 
-    //! Disable writing and retain only the latest records
-    void STOP_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
+    //! Ensure a container is open for writing, opening one lazily if needed
+    //! \return true if a container is available for writing, false otherwise
+    bool ensureContainerOpen();
 
-    // ----------------------------------------------------------------------
-    // Ring buffer types and helpers
-    // ----------------------------------------------------------------------
+    //! Account for a record just written: bump the counter and send the
+    //! container once it is full
+    void recordWritten();
 
-    enum RecordType { RECORD_BMP, RECORD_IMU };
-
-    struct RingEntry {
-        RecordType type;
-        BmpSensorData bmp;
-        ImuSensorData imu;
-    };
-
-    //! Add a record, discarding the oldest record when the ring is full
-    void pushEntry(const RingEntry& entry);
-
-    //! Serialize and send all records in the full ring
-    void flushRing();
+    //! Send the open container and reset the record counter
+    void closeAndSendContainer();
 
     // ----------------------------------------------------------------------
     // Member variables
     // ----------------------------------------------------------------------
 
-    RingEntry m_ring[RECORDS_PER_CONTAINER];
-    U32 m_head;
-    U32 m_count;
-    bool m_writingEnabled;
-    U32 m_droppedRecords;
+    //! The data product container being filled
+    DpContainer m_container;
+    //! Whether a container is currently open for writing
+    bool m_dpInProgress;
+    //! Number of records written into the open container
+    U32 m_records;
 };
 
 }  // namespace Components
