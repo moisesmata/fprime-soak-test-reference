@@ -21,7 +21,7 @@ module FprimeSoakTestReference {
     import DpCompression.Subtopology
     import FileHandling.Subtopology
     import MpuImu.Subtopology
-    import Bmp280.Subtopology
+    # import Bmp280.Subtopology
 
   # ----------------------------------------------------------------------
   # Instances used in the topology
@@ -114,7 +114,7 @@ module FprimeSoakTestReference {
 
       # Rate group 2 (10Hz): Sensors, telemetry packetization, and communications.
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup2] -> rateGroup2.CycleIn
-      rateGroup2.RateGroupMemberOut[0] -> Bmp280.bmpManager.run
+      # rateGroup2.RateGroupMemberOut[0] -> Bmp280.bmpManager.run
       rateGroup2.RateGroupMemberOut[1] -> MpuImu.imuManager.run
       rateGroup2.RateGroupMemberOut[2] -> FileHandling.fileDownlink.Run
       rateGroup2.RateGroupMemberOut[3] -> ComCcsds.comQueue.run
@@ -140,7 +140,7 @@ module FprimeSoakTestReference {
 
     connections FprimeSoakTestReferenceDeployment {
        # Sensor managers push readings into the application component
-       Bmp280.bmpManager.bmpDataPush -> sensorDataProducer.bmpDataIn
+       # Bmp280.bmpManager.bmpDataPush -> sensorDataProducer.bmpDataIn
        MpuImu.imuManager.imuDataPush -> sensorDataProducer.imuDataIn
 
        # Application component produces data products (synchronous buffer request)

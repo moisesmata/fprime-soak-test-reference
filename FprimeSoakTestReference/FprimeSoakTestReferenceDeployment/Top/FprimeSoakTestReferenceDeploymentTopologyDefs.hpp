@@ -26,9 +26,9 @@
 // Include autocoded FPP constants
 #include "FprimeSoakTestReference/FprimeSoakTestReferenceDeployment/Top/FppConstantsAc.hpp"
 
-// MpuImu, Bmp280 Subtopology includes
+// MpuImu Subtopology includes
 #include "fprime-sensors/MpuImu/Subtopology/SubtopologyTopologyDefs.hpp"
-#include "fprime-sensors/Bmp280/Subtopology/SubtopologyTopologyDefs.hpp"
+// #include "fprime-sensors/Bmp280/Subtopology/SubtopologyTopologyDefs.hpp"
 
 /**
  * \brief required ping constants
@@ -75,7 +75,7 @@ struct TopologyState {
     DpCompression::SubtopologyState dpCompression;   //!< Subtopology state for DpCompression
     FileHandling::SubtopologyState fileHandling;     //!< Subtopology state for FileHandling
     MpuImu::SubtopologyState mpu;                    //!< Subtopology state for MpuImu
-    Bmp280::SubtopologyState bmp;                    //!< Subtopology state for Bmp280
+    // Bmp280::SubtopologyState bmp;                 //!< Subtopology state for Bmp280
 };
 
 namespace PingEntries = ::PingEntries;
