@@ -153,6 +153,9 @@ bool SensorDataProducer::openContainer() {
         return false;
     }
 
+    // Request zlib compression in DpWriter via DpCompression (port 0 / bit 0)
+    this->m_container.setProcTypes(
+        static_cast<Fw::DpCfg::ProcType::SerialType>(Fw::DpCfg::ProcType::PROC_TYPE_ZLIB_DEFLATE));
     this->m_dpInProgress = true;
     this->m_records = 0;
     this->log_ACTIVITY_LO_DpStarted();

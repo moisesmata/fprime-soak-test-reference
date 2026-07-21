@@ -18,6 +18,7 @@ module FprimeSoakTestReference {
     import CdhCore.Subtopology
     import ComCcsds.Subtopology
     import DataProducts.Subtopology
+    import DpCompression.Subtopology
     import FileHandling.Subtopology
     import MpuImu.Subtopology
     import Bmp280.Subtopology
@@ -97,6 +98,9 @@ module FprimeSoakTestReference {
       # Data Products to File Downlink
       DataProducts.dpCat.fileOut -> FileHandling.fileDownlink.SendFile
       FileHandling.fileDownlink.FileComplete -> DataProducts.dpCat.fileDone
+
+      # Compress containers that request PROC_TYPE_ZLIB_DEFLATE before writing
+      DataProducts.Subtopology.dpWriterProcOut[0] -> DpCompression.Subtopology.dpCompressProcIn
     }
 
     connections RateGroups {
@@ -125,6 +129,7 @@ module FprimeSoakTestReference {
       rateGroup3.RateGroupMemberOut[3] -> DataProducts.dpBufferManager.schedIn
       rateGroup3.RateGroupMemberOut[4] -> DataProducts.dpWriter.schedIn
       rateGroup3.RateGroupMemberOut[5] -> DataProducts.dpMgr.schedIn
+      rateGroup3.RateGroupMemberOut[6] -> DpCompression.Subtopology.dpZLibBufferManagerSchedIn
     }
 
     connections CdhCore_cmdSeq {
