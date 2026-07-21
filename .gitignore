@@ -7,6 +7,10 @@ build-fprime-*
 *.template.cpp
 *.template.hpp
 
+# Moises' dev environment, (delete later)
+toolchains/
+scripts
+
 # Misc
 /venv/
 /fprime-venv/
