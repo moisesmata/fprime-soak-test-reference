@@ -107,8 +107,7 @@ module FprimeSoakTestReference {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # Rate group 1 (1kHz): Command sequencer for fast command dispatch. Only
-      # non-blocking work belongs here given the 1ms cycle budget.
+      # Rate group 1 (100Hz): Command sequencer
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
       rateGroup1.RateGroupMemberOut[0] -> cmdSeq.schedIn
 
