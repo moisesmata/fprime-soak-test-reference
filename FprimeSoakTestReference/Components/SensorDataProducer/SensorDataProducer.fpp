@@ -33,10 +33,10 @@ module Components {
         # ----------------------------------------------------------------------
 
         @ Port for receiving Bmp280 sensor data
-        guarded input port bmpDataIn: Bmp280.Bmp280DataOut
+        sync input port bmpDataIn: Bmp280.Bmp280DataOut
 
         @ Port for receiving IMU sensor data
-        guarded input port imuDataIn: MpuImu.ImuDataOut
+        sync input port imuDataIn: MpuImu.ImuDataOut
 
         # ----------------------------------------------------------------------
         # Commands
@@ -44,10 +44,10 @@ module Components {
 
         @ Start serializing sensor data into data product containers. Each
         @ container is sent as soon as it fills.
-        guarded command START
+        sync command START
 
         @ Stop serializing sensor data. Any partially filled container is sent.
-        guarded command STOP
+        sync command STOP
 
         # ----------------------------------------------------------------------
         # Data products
