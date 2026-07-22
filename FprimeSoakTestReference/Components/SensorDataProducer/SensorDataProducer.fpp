@@ -44,10 +44,10 @@ module Components {
 
         @ Start serializing sensor data into data product containers. Each
         @ container is sent as soon as it fills.
-        sync command START
+        sync command START_SERIALIZING
 
         @ Stop serializing sensor data. Any partially filled container is sent.
-        sync command STOP
+        sync command STOP_SERIALIZING
 
         # ----------------------------------------------------------------------
         # Data products
@@ -65,9 +65,6 @@ module Components {
         # ----------------------------------------------------------------------
         # Telemetry
         # ----------------------------------------------------------------------
-
-        @ Number of records written into the current data product container
-        telemetry DpRecords: U32
 
         @ Whether sensor data is being serialized into data products
         telemetry DpActive: bool
@@ -90,12 +87,6 @@ module Components {
         event DpMemoryFail \
             severity warning high \
             format "Failed to acquire a data product buffer"
-
-        @ Data product ports are not connected
-        event DpsNotConnected \
-            severity warning high \
-            format "Data product ports are not connected" \
-            throttle 5
 
         @ Data product production was started by command
         event DpProductionStarted \

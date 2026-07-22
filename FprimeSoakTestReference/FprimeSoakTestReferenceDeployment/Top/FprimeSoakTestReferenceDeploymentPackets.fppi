@@ -1,9 +1,6 @@
 telemetry packets FprimeSoakTestReferenceDeploymentPackets {
 
-  # Medium-rate sensor data packet (10Hz rate group)
-  # Contains the latest BMP sample and data product record count
   packet SensorMediumRate id 3 group 1 {
-    FprimeSoakTestReference.sensorDataProducer.DpRecords
     FprimeSoakTestReference.sensorDataProducer.DpActive
   }
 

@@ -18,10 +18,10 @@ namespace FprimeSoakTestReference {
 // Instantiate a malloc allocator for cmdSeq buffer allocation
 Fw::MallocAllocator mallocator;
 
-// The topology divides the incoming clock signal (100Hz) into sub-signals with 0 offset:
-//   rateGroup1 = 100/1   = 100Hz (10ms)  - command sequencer
-//   rateGroup2 = 100/10  =  10Hz (100ms) - sensors (BMP, IMU), TlmPacketizer, comms, file downlink
-//   rateGroup3 = 100/100 =   1Hz (1s)    - housekeeping / health / data-product services
+// The topology divides the incoming clock signal (1KHz) into sub-signals with 0 offset:
+//   rateGroup1 = 1000/1    =  1KHz (1ms)   - command sequencer
+//   rateGroup2 = 1000/100  =  10Hz (100ms) - sensors (BMP, IMU), TlmPacketizer, comms, file downlink
+//   rateGroup3 = 1000/1000 =  1Hz (1s)     - health / data-product services
 Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 0}}};
 
 // Rate groups may supply a context token to each of the attached children whose purpose is set by the project. The

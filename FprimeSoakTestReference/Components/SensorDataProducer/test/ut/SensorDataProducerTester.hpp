@@ -15,7 +15,7 @@ namespace Components {
 class SensorDataProducerTester : public SensorDataProducerGTestBase {
   public:
     // Maximum size of histories storing events, telemetry, and port outputs
-    static const FwSizeType MAX_HISTORY_SIZE = 300;
+    static const FwSizeType MAX_HISTORY_SIZE = 200;
     // Instance ID supplied to the component instance under test
     static const FwEnumStoreType TEST_INSTANCE_ID = 0;
     // Backing store size for a requested data product buffer

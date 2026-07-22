@@ -107,7 +107,7 @@ module FprimeSoakTestReference {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # Rate group 1 (100Hz): Command sequencer
+      # Rate group 1 (1KHz): Command sequencer
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1] -> rateGroup1.CycleIn
       rateGroup1.RateGroupMemberOut[0] -> cmdSeq.schedIn
 
@@ -142,7 +142,7 @@ module FprimeSoakTestReference {
        Bmp280.bmpManager.bmpDataPush -> sensorDataProducer.bmpDataIn
        MpuImu.imuManager.imuDataPush -> sensorDataProducer.imuDataIn
 
-       # Application component produces data products (synchronous buffer request)
+       # Application component produces data products
        sensorDataProducer.productGetOut  -> DataProducts.Subtopology.productGetIn
        sensorDataProducer.productSendOut -> DataProducts.Subtopology.productSendIn
     }
