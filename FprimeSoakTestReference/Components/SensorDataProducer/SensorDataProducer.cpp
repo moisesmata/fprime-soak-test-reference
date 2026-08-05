@@ -94,6 +94,10 @@ void SensorDataProducer::imuDataIn_handler(FwIndexType portNum, const MpuImu::Im
     this->recordWritten();
 }
 
+void SensorDataProducer::isSerializing_handler(FwIndexType portNum, Fw::Success& condition) {
+    condition = this->m_active ? Fw::Success::FAILURE : Fw::Success::SUCCESS;
+}
+
 void SensorDataProducer::START_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
     this->m_active = true;
     this->m_bmpStride = 0;

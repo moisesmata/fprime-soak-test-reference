@@ -65,4 +65,11 @@ module FprimeSoakTestReference {
 
   instance sensorDataProducer: Components.SensorDataProducer base id 0x10015000
 
+  instance modeManager: Svc.ModeManager base id 0x10016000 \
+    queue size Default.QUEUE_SIZE \
+    stack size Default.STACK_SIZE \
+    priority 40
+
+  instance modePolicy: Components.ModePolicy base id 0x10017000
+
 }

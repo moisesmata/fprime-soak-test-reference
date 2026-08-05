@@ -55,6 +55,7 @@ namespace PingEntries {
     namespace FprimeSoakTestReference_rateGroup10Hz {enum { WARN = 3, FATAL = 5 };}
     namespace FprimeSoakTestReference_rateGroup1Hz {enum { WARN = 3, FATAL = 5 };}
     namespace FprimeSoakTestReference_cmdSeq {enum { WARN = 3, FATAL = 5 };}
+    namespace FprimeSoakTestReference_modeManager {enum { WARN = 3, FATAL = 5 };}
 }  // namespace PingEntries
 
 // Definitions are placed within the same namespace as the FPP module that contains the topology.

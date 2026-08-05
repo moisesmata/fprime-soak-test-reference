@@ -38,6 +38,8 @@ module FprimeSoakTestReference {
     instance timer
     instance cmdSeq
     instance sensorDataProducer
+    instance modeManager
+    instance modePolicy
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -142,6 +144,14 @@ module FprimeSoakTestReference {
       # Command Sequencer
       cmdSeq.comCmdOut -> CdhCore.cmdDisp.seqCmdBuff
       CdhCore.cmdDisp.seqCmdStatus -> cmdSeq.cmdResponseIn
+    }
+
+    connections ModeManager_ModePolicy {
+      # ModeManager → ModePolicy: check transition permission
+      modeManager.checkTransition -> modePolicy.checkTransition
+
+      # ModePolicy → SensorDataProducer: query serialization state
+      modePolicy.querySerialization -> sensorDataProducer.isSerializing
     }
 
     connections FprimeSoakTestReferenceDeployment {

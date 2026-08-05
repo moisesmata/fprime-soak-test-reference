@@ -50,6 +50,15 @@ module Components {
         sync command STOP_SERIALIZING
 
         # ----------------------------------------------------------------------
+        # State queries
+        # ----------------------------------------------------------------------
+
+        @ Report whether sensor data is currently being serialized. Returns
+        @ SUCCESS if NOT serializing (safe to interrupt), FAILURE if actively
+        @ serializing. Used by ModePolicy to gate EXPERIMENTATION -> IDLE.
+        sync input port isSerializing: Fw.SuccessCondition
+
+        # ----------------------------------------------------------------------
         # Data products
         # ----------------------------------------------------------------------
 

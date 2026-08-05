@@ -31,6 +31,8 @@ class SensorDataProducer final : public SensorDataProducerComponentBase {
     void START_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
     void STOP_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
 
+    void isSerializing_handler(FwIndexType portNum, Fw::Success& condition) override;
+
     //! Allocate a container if needed. Returns true when one is available.
     bool ensureContainer();
     //! Count a written record; send the container when full.
