@@ -36,6 +36,19 @@ namespace Components {
         const Svc::ModeRequest& req
     )
   {
+    // STARTUP can only transition to IDLE (via START command)
+    if (current == Svc::Mode::STARTUP) {
+      if (target == Svc::Mode::IDLE) {
+        return Fw::Success::SUCCESS;
+      }
+      this->log_WARNING_LO_TransitionBlocked(
+          current,
+          target,
+          Fw::String("STARTUP can only transition to IDLE")
+      );
+      return Fw::Success::FAILURE;
+    }
+
     // SAFE can only transition to IDLE (REQ-MPOL-002, REQ-MPOL-003)
     if (current == Svc::Mode::SAFE) {
       if (target == Svc::Mode::IDLE) {
