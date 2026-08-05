@@ -10,6 +10,7 @@
 
 // Necessary project-specified types
 #include <Fw/Types/MallocAllocator.hpp>
+#include <Os/TaskString.hpp>
 
 // Public functions for use in main program are namespaced with deployment module FprimeSoakTestReference
 // This is also the namespace where the topology components are instantiated by FPP.
@@ -19,7 +20,7 @@ namespace FprimeSoakTestReference {
 Fw::MallocAllocator mallocator;
 
 // The topology divides the incoming clock signal (1KHz) into sub-signals with 0 offset:
-//   rateGroup1KHz = 1000/1    =  1KHz (1ms)   - command sequencer, RFM69 run (RX poll)
+//   rateGroup1KHz = 1000/1    =  1KHz (1ms)   - command sequencer
 //   rateGroup10Hz = 1000/100  =  10Hz (100ms) - sensors, file downlink
 //   rateGroup1Hz  = 1000/1000 =  1Hz (1s)     - health / DP / ComQueue / tlmSend / aggregator
 Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 0}}};
@@ -29,6 +30,10 @@ Svc::RateGroupDriver::DividerSet rateGroupDivisorsSet{{{1, 0}, {100, 0}, {1000, 
 Svc::ActiveRateGroup::ContextArray rateGroup1KHzContext(0);
 Svc::ActiveRateGroup::ContextArray rateGroup10HzContext(0);
 Svc::ActiveRateGroup::ContextArray rateGroup1HzContext(0);
+
+enum TopologyConstants {
+    COMM_PRIORITY = 34,
+};
 
 /**
  * \brief configure/setup components in project-specific way
@@ -50,7 +55,7 @@ void configureTopology() {
     cmdSeq.allocateBuffer(0, mallocator, 5 * 1024);
 
     // PrmDb file name must be supplied by the using topology (required for PRM_SAVE_FILE)
-    FileHandling::prmDb.configure("/home/pi/fprime/PrmDb.dat");
+    FileHandling::prmDb.configure("PrmDb.dat");
 }
 
 void setupTopology(const TopologyState& state) {
@@ -73,6 +78,14 @@ void setupTopology(const TopologyState& state) {
     loadParameters();
     // Autocoded task kick-off (active components). Function provided by autocoder.
     startTasks(state);
+
+    // Configure and start UDP when a peer was supplied on the command line.
+    if (state.hostname != nullptr && state.port != 0) {
+        (void)comDriver.configureSend(state.hostname, state.port);
+        (void)comDriver.configureRecv("0.0.0.0", state.localPort);
+        Os::TaskString name("UdpRecv");
+        comDriver.start(name, COMM_PRIORITY, Default::STACK_SIZE);
+    }
 }
 
 void startRateGroups(const Fw::TimeInterval& interval) {
@@ -90,6 +103,10 @@ void teardownTopology(const TopologyState& state) {
     // Autocoded (active component) task clean-up. Functions provided by topology autocoder.
     stopTasks(state);
     freeThreads(state);
+
+    // Stop the UDP receive task
+    comDriver.stop();
+    (void)comDriver.join();
 
     // Resource deallocation
     cmdSeq.deallocateBuffer(mallocator);

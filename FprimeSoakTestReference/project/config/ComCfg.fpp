@@ -10,14 +10,15 @@ module ComCfg {
     @ Spacecraft ID (10 bits) for CCSDS Data Link layer
     dictionary constant SpacecraftId = 0x0044
 
-    @ Fixed size of CCSDS TM frames (unused by SpacePacketFraming radio path;
+    @ Fixed size of CCSDS TM frames (unused by SpacePacket path;
     @ retained for dictionary / unused TmFramer compile compatibility).
     dictionary constant TmFrameFixedSize = 255  # Needs to be at least COM_BUFFER_MAX_SIZE + (2 * SpacePacketHeaderSize) + 1
 
     @ Upper Bound on Fixed size of CCSDS AOS frames
     constant AosMaxFrameFixedSize = 1536
 
-    @ Aggregation buffer for ComAggregator: full RFM69 payload (one RF packet)
+    @ Aggregation buffer for ComAggregator (kept at radio MTU size for parity
+    @ with the Space Packet framing used on the RF branch).
     constant AggregationSize = 255
 
     @ Packet Version Numbers are 3 bits with only 2 currently valid values

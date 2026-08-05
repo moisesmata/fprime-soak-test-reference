@@ -14,7 +14,7 @@
   "Svc.Health": "CdhCore.health",
   "Svc.ModeManager": "FprimeSoakTestReference.modeManager",
   "Components.ModePolicy": "FprimeSoakTestReference.modePolicy",
-  "Rfm69.Rfm69Manager": "Rfm69.rfm69Manager",
+  "Drv.Udp": "FprimeSoakTestReference.comDriver",
   "Components.SensorDataProducer": "FprimeSoakTestReference.sensorDataProducer",
   "soak.fsw_tmp": "/tmp",
   "soak.cmd_timeout_s": 5,

@@ -1,11 +1,11 @@
 telemetry packets FprimeSoakTestReferenceDeploymentPackets {
 
-  # Group 1 = default radio load (setPacketList level 1). Keep lean for 19.2 kbps.
+  # Group 1 = default UDP load (setPacketList level 1).
   packet SensorMediumRate id 3 group 2 {
     FprimeSoakTestReference.sensorDataProducer.DpActive
   }
 
-  # Lean group-1 CDH for radio soak: queue depth + cmd/health timing only.
+  # Lean group-1 CDH: queue depth + cmd/health timing only.
   packet CDH id 1 group 1 {
     FprimeSoakTestReference.modeManager.CurrentMode
     CdhCore.cmdDisp.CommandsDispatched
@@ -25,8 +25,6 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
     CdhCore.events.EventsDropped
     ComCcsds.commsBufferManager.NoBuffs
     ComCcsds.commsBufferManager.EmptyBuffs
-    Rfm69.rfm69Manager.RxCrcErrors  # Not a channel on Rfm69Manager at the currently
-    # pinned fprime-sensors commit (a6bddc0) -- stale reference, present upstream too.
     FprimeSoakTestReference.rateGroup1KHz.RgCycleSlips
     FprimeSoakTestReference.rateGroup10Hz.RgCycleSlips
     FprimeSoakTestReference.rateGroup1Hz.RgCycleSlips
@@ -181,12 +179,6 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
     MpuImu.imuManager.Reading
   }
 
-  packet Radio id 39 group 1 {
-    Rfm69.rfm69Manager.PacketsTransmitted
-    Rfm69.rfm69Manager.PacketsReceived
-    Rfm69.rfm69Manager.LastRssi
-  }
-
 } omit {
   # Omit unused command dispatcher errors
   CdhCore.cmdDisp.CommandErrors
@@ -197,7 +189,6 @@ telemetry packets FprimeSoakTestReferenceDeploymentPackets {
 
   # Omit low-level driver telemetry
   Bmp280.bmpDriver.SPI_Bytes
-  Rfm69.spiDriver.SPI_Bytes
 
   #idk just build plz
   FprimeSoakTestReference.cmdSeq.CS_CurrentSequence

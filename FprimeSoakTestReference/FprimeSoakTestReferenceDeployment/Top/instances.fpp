@@ -72,4 +72,6 @@ module FprimeSoakTestReference {
 
   instance modePolicy: Components.ModePolicy base id 0x10017000
 
+  instance comDriver: Drv.Udp base id 0x10018000
+
 }

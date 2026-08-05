@@ -16,15 +16,15 @@ module FprimeSoakTestReference {
   # Subtopology imports
   # ----------------------------------------------------------------------
     import CdhCore.Subtopology
-    # Space-packet layer only (no TM/TC transfer frames). Rfm69Manager is the
-    # sole Svc.Com adapter for the packet radio (no TCP / ComStub).
-    import ComCcsds.SpacePacketFraming
+    # Space-packet layer only (no TM/TC transfer frames), with ComStub for a
+    # ByteStream driver. Same framing stack as the radio deployment; UDP
+    # replaces Rfm69Manager as the link adapter.
+    import ComCcsds.SpacePacket
     import DataProducts.Subtopology
     import DpCompression.Subtopology
     import FileHandling.Subtopology
     import MpuImu.Subtopology
     import Bmp280.Subtopology
-    import Rfm69.Subtopology
 
   # ----------------------------------------------------------------------
   # Instances used in the topology
@@ -40,6 +40,7 @@ module FprimeSoakTestReference {
     instance sensorDataProducer
     instance modeManager
     instance modePolicy
+    instance comDriver
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -84,20 +85,17 @@ module FprimeSoakTestReference {
     }
 
     connections Communications {
-      # RFM69 manager buffer allocations
-      Rfm69.rfm69Manager.allocate   -> ComCcsds.commsBufferManager.bufferGetCallee
-      Rfm69.rfm69Manager.deallocate -> ComCcsds.commsBufferManager.bufferSendIn
+      # UDP driver buffer allocations
+      comDriver.allocate   -> ComCcsds.SpacePacket.commsBufferGetCallee
+      comDriver.deallocate -> ComCcsds.SpacePacket.commsBufferSendIn
 
-      # Aggregated space packets <-> RFM69 (Downlink).
-      # ComRetry temporarily removed for A/B — re-add if holdoff/mute deferrals
-      # need same-frame retry before pausing ComQueue.
-      ComCcsds.SpacePacketFraming.dataOut       -> Rfm69.rfm69Manager.dataIn
-      Rfm69.rfm69Manager.dataReturnOut          -> ComCcsds.SpacePacketFraming.dataReturnIn
-      Rfm69.rfm69Manager.comStatusOut           -> ComCcsds.SpacePacketFraming.comStatusIn
+      # UDP <-> ComStub (Uplink)
+      comDriver.$recv                          -> ComCcsds.SpacePacket.drvReceiveIn
+      ComCcsds.SpacePacket.drvReceiveReturnOut -> comDriver.recvReturnIn
 
-      # RFM69 <-> SpacePacketDeframer (Uplink; one complete SP per RF packet)
-      Rfm69.rfm69Manager.dataOut                -> ComCcsds.SpacePacketFraming.dataIn
-      ComCcsds.SpacePacketFraming.dataReturnOut -> Rfm69.rfm69Manager.dataReturnIn
+      # ComStub <-> UDP (Downlink)
+      ComCcsds.SpacePacket.drvSendOut -> comDriver.$send
+      comDriver.ready                 -> ComCcsds.SpacePacket.drvConnected
     }
 
     connections FileHandling_DataProducts {
@@ -113,10 +111,9 @@ module FprimeSoakTestReference {
       # timer to drive rate group
       timer.CycleOut -> rateGroupDriver.CycleIn
 
-      # Rate group 1KHz: Command sequencer + RFM69 RX poll
+      # Rate group 1KHz: Command sequencer
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1KHz] -> rateGroup1KHz.CycleIn
       rateGroup1KHz.RateGroupMemberOut[0] -> cmdSeq.schedIn
-      rateGroup1KHz.RateGroupMemberOut[1] -> Rfm69.rfm69Manager.run
 
       # Rate group 10Hz: Sensors, file downlink
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup10Hz] -> rateGroup10Hz.CycleIn
@@ -124,9 +121,7 @@ module FprimeSoakTestReference {
       rateGroup10Hz.RateGroupMemberOut[1] -> MpuImu.imuManager.run
       rateGroup10Hz.RateGroupMemberOut[2] -> FileHandling.fileDownlink.Run
 
-      # Rate group 1Hz: Housekeeping, ComQueue, telemetry, and aggregator flush.
-      # Aggregator timeout at 1 Hz lets space packets fill toward the RF MTU
-      # before TX (fewer half-empty packets at 19.2 kbps).
+      # Rate group 1Hz: Housekeeping, ComQueue, telemetry, and aggregator flush
       rateGroupDriver.CycleOut[Ports_RateGroups.rateGroup1Hz] -> rateGroup1Hz.CycleIn
       rateGroup1Hz.RateGroupMemberOut[0] -> CdhCore.$health.Run
       rateGroup1Hz.RateGroupMemberOut[1] -> systemResources.run

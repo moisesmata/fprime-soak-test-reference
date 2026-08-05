@@ -26,10 +26,9 @@
 // Include autocoded FPP constants
 #include "FprimeSoakTestReference/FprimeSoakTestReferenceDeployment/Top/FppConstantsAc.hpp"
 
-// MpuImu, Bmp280, Rfm69 Subtopology includes
+// MpuImu, Bmp280 Subtopology includes
 #include "fprime-sensors/MpuImu/Subtopology/SubtopologyTopologyDefs.hpp"
 #include "fprime-sensors/Bmp280/Subtopology/SubtopologyTopologyDefs.hpp"
-#include "fprime-sensors/Rfm69/Subtopology/SubtopologyTopologyDefs.hpp"
 
 /**
  * \brief required ping constants
@@ -69,6 +68,9 @@ namespace FprimeSoakTestReference {
  * contents are entirely up to the definition of the project. This deployment uses subtopologies.
  */
 struct TopologyState {
+    const char* hostname;                        //!< IPv4 address of the GDS UDP peer (dotted-quad)
+    U16 port;                                    //!< GDS UDP port (FSW sends here)
+    U16 localPort;                               //!< Local UDP bind port for FSW receive
     CdhCore::SubtopologyState cdhCore;           //!< Subtopology state for CdhCore
     ComCcsds::SubtopologyState comCcsds;         //!< Subtopology state for ComCcsds
     DataProducts::SubtopologyState dataProducts;     //!< Subtopology state for DataProducts
@@ -76,7 +78,6 @@ struct TopologyState {
     FileHandling::SubtopologyState fileHandling;     //!< Subtopology state for FileHandling
     MpuImu::SubtopologyState mpu;                    //!< Subtopology state for MpuImu
     Bmp280::SubtopologyState bmp;                    //!< Subtopology state for Bmp280
-    Rfm69::SubtopologyState rfm69;                   //!< Subtopology state for Rfm69
 };
 
 namespace PingEntries = ::PingEntries;
