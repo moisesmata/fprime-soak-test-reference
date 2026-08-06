@@ -72,4 +72,10 @@ module FprimeSoakTestReference {
 
   instance modePolicy: Components.ModePolicy base id 0x10017000
 
+  # Retries the same framed buffer when Rfm69Manager defers TX (RX busy /
+  # post-RX holdoff / mute) with Com FAILURE, so aggregator frames are not
+  # dropped on the recovery SUCCESS. Default component retry count is 3;
+  # configureTopology() raises it for longer holdoff windows.
+  instance comRetry: Svc.ComRetry base id 0x10018000
+
 }

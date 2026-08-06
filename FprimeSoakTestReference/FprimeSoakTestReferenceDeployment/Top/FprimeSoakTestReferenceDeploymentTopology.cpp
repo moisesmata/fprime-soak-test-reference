@@ -51,6 +51,10 @@ void configureTopology() {
 
     // PrmDb file name must be supplied by the using topology (required for PRM_SAVE_FILE)
     FileHandling::prmDb.configure("/home/pi/fprime/PrmDb.dat");
+
+    // Enough retries to cover post-RX holdoff (~120 ms) plus a short mute or
+    // back-to-back deferral before pausing ComQueue upstream.
+    comRetry.configure(5);
 }
 
 void setupTopology(const TopologyState& state) {

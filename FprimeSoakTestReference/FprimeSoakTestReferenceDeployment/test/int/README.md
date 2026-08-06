@@ -33,7 +33,7 @@ no custom `conftest.py` — fixtures come from `fprime-gds`; helpers live in
 | `test_03_file_uplink.py` | Small + sequence single-chunk uplink (multi-chunk skipped) |
 | `test_04_sequence.py` | `CS_VALIDATE` + `CS_RUN` of uplinked sequence |
 | `test_05_dataproducts.py` | Catalog build, serialize → `.fdp`, self-draining catalog xmit |
-| `test_06_soak_interval.py` | Alternates `START`/`STOP_SERIALIZING` each soak run |
+| `test_06_soak_interval.py` | Alternates `SERIALIZE START`/`STOP` each soak run |
 | `test_07_system_resources.py` | `MEMORY_USED`/`NON_VOLATILE_FREE`/`CPU` present & within monitor thresholds |
 | `test_08_buffers_health.py` | All 3 `BufferManager` pools (`NoBuffs`/`EmptyBuffs`=0, `CurrBuffs`≤`TotalBuffs`) + `Health.PingLateWarnings`=0 |
 

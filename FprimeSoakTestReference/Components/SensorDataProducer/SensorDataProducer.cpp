@@ -19,6 +19,22 @@ SensorDataProducer::SensorDataProducer(const char* const compName)
 
 SensorDataProducer::~SensorDataProducer() {}
 
+Svc::Mode SensorDataProducer::currentMode() {
+    // Open-circuit default keeps unit tests usable when ModeManager is not wired.
+    if (!this->isConnected_getCurrentMode_OutputPort(0)) {
+        return Svc::Mode::EXPERIMENTATION;
+    }
+    return this->getCurrentMode_out(0);
+}
+
+bool SensorDataProducer::inExperimentation() {
+    return this->currentMode() == Svc::Mode::EXPERIMENTATION;
+}
+
+bool SensorDataProducer::inSafe() {
+    return this->currentMode() == Svc::Mode::SAFE;
+}
+
 bool SensorDataProducer::takeSample(U32& counter) {
     counter++;
     if (counter < SAMPLE_STRIDE) {
@@ -64,8 +80,42 @@ void SensorDataProducer::recordWritten() {
     }
 }
 
+void SensorDataProducer::startSerializing() {
+    this->m_active = true;
+    this->m_bmpStride = 0;
+    this->m_imuStride = 0;
+    this->m_loggedAllocFail = false;
+    this->tlmWrite_DpActive(true);
+    this->log_ACTIVITY_HI_DpProductionStarted();
+}
+
+void SensorDataProducer::stopSerializing() {
+    this->m_active = false;
+    if (this->m_containerValid) {
+        this->log_ACTIVITY_LO_DpComplete(static_cast<U32>(this->m_count));
+        this->dpSend(this->m_container);
+        this->m_containerValid = false;
+    }
+    this->m_count = 0;
+    this->tlmWrite_DpActive(false);
+    this->log_ACTIVITY_HI_DpProductionStopped();
+}
+
+bool SensorDataProducer::stopIfSafe() {
+    if (this->m_active && this->inSafe()) {
+        this->stopSerializing();
+        return true;
+    }
+    return false;
+}
+
 void SensorDataProducer::bmpDataIn_handler(FwIndexType portNum, const Bmp280::Bmp280Data& data) {
-    if (!this->m_active || !this->takeSample(this->m_bmpStride) || !this->ensureContainer()) {
+    if (this->stopIfSafe()) {
+        return;
+    }
+    // Serialization is only allowed in EXPERIMENTATION.
+    if (!this->m_active || !this->inExperimentation() || !this->takeSample(this->m_bmpStride) ||
+        !this->ensureContainer()) {
         return;
     }
     const Fw::Time t = this->getTime();
@@ -80,7 +130,12 @@ void SensorDataProducer::bmpDataIn_handler(FwIndexType portNum, const Bmp280::Bm
 }
 
 void SensorDataProducer::imuDataIn_handler(FwIndexType portNum, const MpuImu::ImuData& data) {
-    if (!this->m_active || !this->takeSample(this->m_imuStride) || !this->ensureContainer()) {
+    if (this->stopIfSafe()) {
+        return;
+    }
+    // Serialization is only allowed in EXPERIMENTATION.
+    if (!this->m_active || !this->inExperimentation() || !this->takeSample(this->m_imuStride) ||
+        !this->ensureContainer()) {
         return;
     }
     const Fw::Time t = this->getTime();
@@ -98,26 +153,24 @@ void SensorDataProducer::isSerializing_handler(FwIndexType portNum, Fw::Success&
     condition = this->m_active ? Fw::Success::FAILURE : Fw::Success::SUCCESS;
 }
 
-void SensorDataProducer::START_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
-    this->m_active = true;
-    this->m_bmpStride = 0;
-    this->m_imuStride = 0;
-    this->m_loggedAllocFail = false;
-    this->tlmWrite_DpActive(true);
-    this->log_ACTIVITY_HI_DpProductionStarted();
-    this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
-}
-
-void SensorDataProducer::STOP_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) {
-    this->m_active = false;
-    if (this->m_containerValid) {
-        this->log_ACTIVITY_LO_DpComplete(static_cast<U32>(this->m_count));
-        this->dpSend(this->m_container);
-        this->m_containerValid = false;
+void SensorDataProducer::SERIALIZE_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, const SerializeAction& op) {
+    switch (op.e) {
+        case SerializeAction::START: {
+            if (!this->inExperimentation()) {
+                this->log_WARNING_LO_SerializeRejectedWrongMode(this->currentMode());
+                this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::VALIDATION_ERROR);
+                return;
+            }
+            this->startSerializing();
+            break;
+        }
+        case SerializeAction::STOP:
+            this->stopSerializing();
+            break;
+        default:
+            this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::VALIDATION_ERROR);
+            return;
     }
-    this->m_count = 0;
-    this->tlmWrite_DpActive(false);
-    this->log_ACTIVITY_HI_DpProductionStopped();
     this->cmdResponse_out(opCode, cmdSeq, Fw::CmdResponse::OK);
 }
 

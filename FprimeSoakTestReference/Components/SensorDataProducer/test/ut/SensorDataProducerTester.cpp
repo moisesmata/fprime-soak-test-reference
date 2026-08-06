@@ -11,27 +11,32 @@ namespace Components {
 SensorDataProducerTester::SensorDataProducerTester()
     : SensorDataProducerGTestBase("SensorDataProducerTester", MAX_HISTORY_SIZE),
       component("SensorDataProducer"),
-      m_getStatus(Fw::Success::SUCCESS) {
+      m_getStatus(Fw::Success::SUCCESS),
+      m_mode(Svc::Mode::EXPERIMENTATION) {
     this->initComponents();
     this->connectPorts();
 }
 
 SensorDataProducerTester::~SensorDataProducerTester() {}
 
+Svc::Mode SensorDataProducerTester::from_getCurrentMode_handler(FwIndexType portNum) {
+    return this->m_mode;
+}
+
 void SensorDataProducerTester::sendStart() {
     this->clearHistory();
-    this->sendCmd_START_SERIALIZING(0, 0);
+    this->sendCmd_SERIALIZE(0, 0, SerializeAction::START);
     ASSERT_CMD_RESPONSE_SIZE(1);
-    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_START_SERIALIZING, 0, Fw::CmdResponse::OK);
+    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_SERIALIZE, 0, Fw::CmdResponse::OK);
     ASSERT_EVENTS_DpProductionStarted_SIZE(1);
     this->clearHistory();
 }
 
 void SensorDataProducerTester::sendStop() {
     this->clearHistory();
-    this->sendCmd_STOP_SERIALIZING(0, 0);
+    this->sendCmd_SERIALIZE(0, 0, SerializeAction::STOP);
     ASSERT_CMD_RESPONSE_SIZE(1);
-    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_STOP_SERIALIZING, 0, Fw::CmdResponse::OK);
+    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_SERIALIZE, 0, Fw::CmdResponse::OK);
     ASSERT_EVENTS_DpProductionStopped_SIZE(1);
 }
 
@@ -76,7 +81,10 @@ void SensorDataProducerTester::testInactiveDropsData() {
 
 void SensorDataProducerTester::testBmpReadingWritesRecord() {
     this->sendStart();
-    this->pushBmp(101000.0f, 25.0f);
+    // SAMPLE_STRIDE samples are required before a record is written
+    for (U32 i = 0; i < SensorDataProducer::SAMPLE_STRIDE; i++) {
+        this->pushBmp(101000.0f, 25.0f);
+    }
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_EVENTS_DpStarted_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
@@ -84,7 +92,9 @@ void SensorDataProducerTester::testBmpReadingWritesRecord() {
 
 void SensorDataProducerTester::testImuReadingWritesRecord() {
     this->sendStart();
-    this->pushImu(30.0f);
+    for (U32 i = 0; i < SensorDataProducer::SAMPLE_STRIDE; i++) {
+        this->pushImu(30.0f);
+    }
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_EVENTS_DpStarted_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
@@ -93,10 +103,12 @@ void SensorDataProducerTester::testImuReadingWritesRecord() {
 void SensorDataProducerTester::testContainerSendsWhenFull() {
     this->sendStart();
     for (FwSizeType i = 0; i < SensorDataProducer::RECORD_COUNT; i++) {
-        if ((i % 2) == 0) {
-            this->pushBmp(101000.0f + static_cast<F32>(i), 25.0f);
-        } else {
-            this->pushImu(30.0f + static_cast<F32>(i));
+        for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+            if ((i % 2) == 0) {
+                this->pushBmp(101000.0f + static_cast<F32>(i), 25.0f);
+            } else {
+                this->pushImu(30.0f + static_cast<F32>(i));
+            }
         }
     }
     ASSERT_PRODUCT_GET_SIZE(1);
@@ -105,15 +117,23 @@ void SensorDataProducerTester::testContainerSendsWhenFull() {
     ASSERT_EVENTS_DpComplete(0, static_cast<U32>(SensorDataProducer::RECORD_COUNT));
 
     this->clearHistory();
-    this->pushBmp(101000.0f, 25.0f);
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushBmp(101000.0f, 25.0f);
+    }
     ASSERT_PRODUCT_GET_SIZE(1);
 }
 
 void SensorDataProducerTester::testStopSendsPartialContainer() {
     this->sendStart();
-    this->pushBmp(101000.0f, 25.0f);
-    this->pushImu(30.0f);
-    this->pushImu(31.0f);
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushBmp(101000.0f, 25.0f);
+    }
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushImu(30.0f);
+    }
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushImu(31.0f);
+    }
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
 
@@ -129,10 +149,51 @@ void SensorDataProducerTester::testStopSendsPartialContainer() {
 void SensorDataProducerTester::testAllocationFailure() {
     this->sendStart();
     this->m_getStatus = Fw::Success::FAILURE;
-    this->pushBmp(101000.0f, 25.0f);
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushBmp(101000.0f, 25.0f);
+    }
     ASSERT_PRODUCT_GET_SIZE(1);
     ASSERT_PRODUCT_SEND_SIZE(0);
     ASSERT_EVENTS_DpMemoryFail_SIZE(1);
+}
+
+void SensorDataProducerTester::testStartRejectedOutsideExperimentation() {
+    this->m_mode = Svc::Mode::IDLE;
+    this->clearHistory();
+    this->sendCmd_SERIALIZE(0, 0, SerializeAction::START);
+    ASSERT_CMD_RESPONSE_SIZE(1);
+    ASSERT_CMD_RESPONSE(0, SensorDataProducer::OPCODE_SERIALIZE, 0, Fw::CmdResponse::VALIDATION_ERROR);
+    ASSERT_EVENTS_SerializeRejectedWrongMode_SIZE(1);
+    ASSERT_EVENTS_SerializeRejectedWrongMode(0, Svc::Mode::IDLE);
+    ASSERT_EVENTS_DpProductionStarted_SIZE(0);
+
+    this->pushBmp(101000.0f, 25.0f);
+    ASSERT_PRODUCT_GET_SIZE(0);
+}
+
+void SensorDataProducerTester::testSafeStopsSerializing() {
+    this->sendStart();
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushBmp(101000.0f, 25.0f);
+    }
+    ASSERT_PRODUCT_GET_SIZE(1);
+    ASSERT_PRODUCT_SEND_SIZE(0);
+
+    this->m_mode = Svc::Mode::SAFE;
+    this->clearHistory();
+    this->pushBmp(101000.0f, 25.0f);
+
+    ASSERT_EVENTS_DpProductionStopped_SIZE(1);
+    ASSERT_PRODUCT_SEND_SIZE(1);  // partial container flushed
+    ASSERT_TLM_DpActive_SIZE(1);
+    ASSERT_TLM_DpActive(0, false);
+
+    this->clearHistory();
+    this->m_mode = Svc::Mode::EXPERIMENTATION;
+    for (U32 s = 0; s < SensorDataProducer::SAMPLE_STRIDE; s++) {
+        this->pushBmp(101000.0f, 25.0f);
+    }
+    ASSERT_PRODUCT_GET_SIZE(0);
 }
 
 }  // namespace Components

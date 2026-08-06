@@ -47,23 +47,33 @@ def test_dp_build_catalog(fprime_test_api):
     assert done is not None, "CatalogBuildComplete not observed"
 
 
-def test_dp_serialize_produce_file(fprime_test_api):
-    """START_SERIALIZING produces one filled container and a .fdp, then STOP.
+def _enter_experimentation(api):
+    """Ensure ModeManager is in EXPERIMENTATION (required to SERIALIZE START)."""
+    mode_mgr = api.get_mnemonic("Svc.ModeManager")
+    # START / REQUEST_MODE always complete OK; rejected transitions only EVR.
+    send_cmd(api, f"{mode_mgr}.START")
+    send_cmd(api, f"{mode_mgr}.REQUEST_MODE", ["IDLE"])
+    send_cmd(api, f"{mode_mgr}.REQUEST_MODE", ["EXPERIMENTATION"])
 
-    STOP_SERIALIZING runs in a finally so a mid-test failure never leaves the
+
+def test_dp_serialize_produce_file(fprime_test_api):
+    """SERIALIZE START produces one filled container and a .fdp, then STOP.
+
+    SERIALIZE STOP runs in a finally so a mid-test failure never leaves the
     producer emitting a .fdp every ~25 s (which would congest later tests and
     the next soak interval).
     """
     producer = fprime_test_api.get_mnemonic("Components.SensorDataProducer")
     writer = fprime_test_api.get_mnemonic("Svc.DpWriter")
 
-    send_cmd(fprime_test_api, f"{producer}.STOP_SERIALIZING")
+    _enter_experimentation(fprime_test_api)
+    send_cmd(fprime_test_api, f"{producer}.SERIALIZE", ["STOP"])
 
     start = fprime_test_api.get_event_test_history().size()
     mark_started = fsw_mark("DpProductionStarted")
     mark_complete = fsw_mark("DpComplete")
     mark_written = fsw_mark("FileWritten")
-    send_cmd(fprime_test_api, f"{producer}.START_SERIALIZING")
+    send_cmd(fprime_test_api, f"{producer}.SERIALIZE", ["START"])
     try:
         started = await_event_or_fsw(
             fprime_test_api,
@@ -96,7 +106,7 @@ def test_dp_serialize_produce_file(fprime_test_api):
         )
         assert written is not None, "DpWriter.FileWritten not seen"
     finally:
-        send_cmd(fprime_test_api, f"{producer}.STOP_SERIALIZING")
+        send_cmd(fprime_test_api, f"{producer}.SERIALIZE", ["STOP"])
 
 
 def test_dp_catalog_xmit_downlink(fprime_test_api):

@@ -40,6 +40,7 @@ module FprimeSoakTestReference {
     instance sensorDataProducer
     instance modeManager
     instance modePolicy
+    instance comRetry
 
   # ----------------------------------------------------------------------
   # Pattern graph specifiers
@@ -88,12 +89,15 @@ module FprimeSoakTestReference {
       Rfm69.rfm69Manager.allocate   -> ComCcsds.commsBufferManager.bufferGetCallee
       Rfm69.rfm69Manager.deallocate -> ComCcsds.commsBufferManager.bufferSendIn
 
-      # Aggregated space packets <-> RFM69 (Downlink).
-      # ComRetry temporarily removed for A/B — re-add if holdoff/mute deferrals
-      # need same-frame retry before pausing ComQueue.
-      ComCcsds.SpacePacketFraming.dataOut       -> Rfm69.rfm69Manager.dataIn
-      Rfm69.rfm69Manager.dataReturnOut          -> ComCcsds.SpacePacketFraming.dataReturnIn
-      Rfm69.rfm69Manager.comStatusOut           -> ComCcsds.SpacePacketFraming.comStatusIn
+      # Aggregated space packets <-> RFM69 (Downlink) via ComRetry so a
+      # holdoff/mute Com FAILURE keeps the same frame for resend on the
+      # next SUCCESS (adapter protocol), instead of aggregator doClear.
+      ComCcsds.SpacePacketFraming.dataOut -> comRetry.dataIn
+      comRetry.dataOut                    -> Rfm69.rfm69Manager.dataIn
+      Rfm69.rfm69Manager.dataReturnOut    -> comRetry.dataReturnIn
+      comRetry.dataReturnOut              -> ComCcsds.SpacePacketFraming.dataReturnIn
+      Rfm69.rfm69Manager.comStatusOut     -> comRetry.comStatusIn
+      comRetry.comStatusOut               -> ComCcsds.SpacePacketFraming.comStatusIn
 
       # RFM69 <-> SpacePacketDeframer (Uplink; one complete SP per RF packet)
       Rfm69.rfm69Manager.dataOut                -> ComCcsds.SpacePacketFraming.dataIn
@@ -152,6 +156,9 @@ module FprimeSoakTestReference {
 
       # ModePolicy → SensorDataProducer: query serialization state
       modePolicy.querySerialization -> sensorDataProducer.isSerializing
+
+      # SensorDataProducer → ModeManager: gate serialization on current mode
+      sensorDataProducer.getCurrentMode -> modeManager.getCurrentMode
     }
 
     connections FprimeSoakTestReferenceDeployment {

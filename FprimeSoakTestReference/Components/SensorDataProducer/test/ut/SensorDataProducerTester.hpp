@@ -50,6 +50,12 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
     //! Allocation failure is handled gracefully
     void testAllocationFailure();
 
+    //! START is rejected outside EXPERIMENTATION
+    void testStartRejectedOutsideExperimentation();
+
+    //! Entering SAFE while active stops serialization
+    void testSafeStopsSerializing();
+
   private:
     // ----------------------------------------------------------------------
     // Helpers
@@ -61,10 +67,10 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
     //! Initialize components
     void initComponents();
 
-    //! Send the START command and verify an OK response
+    //! Send SERIALIZE(START) and verify an OK response
     void sendStart();
 
-    //! Send the STOP command and verify an OK response
+    //! Send SERIALIZE(STOP) and verify an OK response
     void sendStop();
 
     //! Push one BMP reading into the component
@@ -80,6 +86,9 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
                                       Fw::Buffer& buffer    //!< The buffer (output)
                                       ) override;
 
+    //! Return the mode ModeManager would report
+    Svc::Mode from_getCurrentMode_handler(FwIndexType portNum) override;
+
     // ----------------------------------------------------------------------
     // Variables
     // ----------------------------------------------------------------------
@@ -92,6 +101,9 @@ class SensorDataProducerTester : public SensorDataProducerGTestBase {
 
     //! Status returned by productGet_handler (drives failure simulation)
     Fw::Success::T m_getStatus;
+
+    //! Mode returned by from_getCurrentMode_handler
+    Svc::Mode m_mode;
 };
 
 }  // namespace Components

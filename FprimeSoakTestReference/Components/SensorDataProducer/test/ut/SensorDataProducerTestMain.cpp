@@ -36,6 +36,16 @@ TEST(OffNominal, AllocationFailure) {
     tester.testAllocationFailure();
 }
 
+TEST(OffNominal, StartRejectedOutsideExperimentation) {
+    Components::SensorDataProducerTester tester;
+    tester.testStartRejectedOutsideExperimentation();
+}
+
+TEST(OffNominal, SafeStopsSerializing) {
+    Components::SensorDataProducerTester tester;
+    tester.testSafeStopsSerializing();
+}
+
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

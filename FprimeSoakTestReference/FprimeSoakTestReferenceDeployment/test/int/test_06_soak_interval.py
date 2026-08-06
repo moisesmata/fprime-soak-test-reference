@@ -18,10 +18,11 @@ from soak_helpers import (
 
 
 def test_soak_interval_dp_serialize_duty(fprime_test_api):
-    """Flip START/STOP_SERIALIZING each soak-test invocation; persist choice."""
+    """Flip SERIALIZE START/STOP each soak-test invocation; persist choice."""
     wait_rf_quiet(2.0)
 
     producer = fprime_test_api.get_mnemonic("Components.SensorDataProducer")
+    mode_mgr = fprime_test_api.get_mnemonic("Svc.ModeManager")
     state_path = dp_serialize_state_path()
     last = (
         state_path.read_text(encoding="utf-8").strip() if state_path.is_file() else "off"
@@ -35,8 +36,12 @@ def test_soak_interval_dp_serialize_duty(fprime_test_api):
 
     start = fprime_test_api.get_event_test_history().size()
     if enable:
+        # SERIALIZE START is accepted only in EXPERIMENTATION.
+        send_cmd(fprime_test_api, f"{mode_mgr}.START")
+        send_cmd(fprime_test_api, f"{mode_mgr}.REQUEST_MODE", ["IDLE"])
+        send_cmd(fprime_test_api, f"{mode_mgr}.REQUEST_MODE", ["EXPERIMENTATION"])
         mark = fsw_mark("DpProductionStarted")
-        send_cmd(fprime_test_api, f"{producer}.START_SERIALIZING")
+        send_cmd(fprime_test_api, f"{producer}.SERIALIZE", ["START"])
         ev = await_event_or_fsw(
             fprime_test_api,
             f"{producer}.DpProductionStarted",
@@ -47,7 +52,7 @@ def test_soak_interval_dp_serialize_duty(fprime_test_api):
         )
     else:
         mark = fsw_mark("DpProductionStopped")
-        send_cmd(fprime_test_api, f"{producer}.STOP_SERIALIZING")
+        send_cmd(fprime_test_api, f"{producer}.SERIALIZE", ["STOP"])
         ev = await_event_or_fsw(
             fprime_test_api,
             f"{producer}.DpProductionStopped",

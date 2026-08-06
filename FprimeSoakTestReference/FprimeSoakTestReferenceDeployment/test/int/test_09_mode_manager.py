@@ -80,7 +80,10 @@ def test_experimentation_to_idle_rejected_while_serializing(fprime_test_api):
         _mode_manager(fprime_test_api, "REQUEST_MODE"), ["EXPERIMENTATION"], max_delay=5, commander=commander
     )
     fprime_test_api.send_and_assert_command(
-        _sensor_data_producer(fprime_test_api, "START_SERIALIZING"), [], max_delay=5, commander=commander
+        _sensor_data_producer(fprime_test_api, "SERIALIZE"),
+        ["START"],
+        max_delay=5,
+        commander=commander,
     )
 
     fprime_test_api.send_and_assert_command(
@@ -99,7 +102,10 @@ def test_experimentation_to_idle_rejected_while_serializing(fprime_test_api):
 
     # Leave the component idle for later tests.
     fprime_test_api.send_and_assert_command(
-        _sensor_data_producer(fprime_test_api, "STOP_SERIALIZING"), [], max_delay=5, commander=commander
+        _sensor_data_producer(fprime_test_api, "SERIALIZE"),
+        ["STOP"],
+        max_delay=5,
+        commander=commander,
     )
 
 

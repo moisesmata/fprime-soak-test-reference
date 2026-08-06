@@ -28,11 +28,22 @@ class SensorDataProducer final : public SensorDataProducerComponentBase {
     void bmpDataIn_handler(FwIndexType portNum, const Bmp280::Bmp280Data& data) override;
     void imuDataIn_handler(FwIndexType portNum, const MpuImu::ImuData& data) override;
 
-    void START_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
-    void STOP_SERIALIZING_cmdHandler(FwOpcodeType opCode, U32 cmdSeq) override;
+    void SERIALIZE_cmdHandler(FwOpcodeType opCode, U32 cmdSeq, const SerializeAction& op) override;
 
     void isSerializing_handler(FwIndexType portNum, Fw::Success& condition) override;
 
+    //! Current mode from ModeManager, or EXPERIMENTATION if the port is open.
+    Svc::Mode currentMode();
+    //! True when serialization is permitted (EXPERIMENTATION).
+    bool inExperimentation();
+    //! True when the spacecraft is in SAFE.
+    bool inSafe();
+    //! Begin serialization; caller must already have checked mode.
+    void startSerializing();
+    //! Stop serialization and flush any partial container.
+    void stopSerializing();
+    //! If SAFE while active, stop and return true.
+    bool stopIfSafe();
     //! Allocate a container if needed. Returns true when one is available.
     bool ensureContainer();
     //! Count a written record; send the container when full.

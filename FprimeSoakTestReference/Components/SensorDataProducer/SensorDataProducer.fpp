@@ -24,6 +24,12 @@ module Components {
         rotation: FprimeSensors.GeometricVector3
     }
 
+    @ Start or stop sensor-data serialization
+    enum SerializeAction {
+        START @< Begin serializing sensor data into data products
+        STOP  @< Stop serializing and flush any partial container
+    }
+
     @ Application component in the App-Manager-Driver pattern. Consumes data pushed
     @ from BmpManager and ImuManager and produces data products 
     passive component SensorDataProducer {
@@ -39,15 +45,23 @@ module Components {
         sync input port imuDataIn: MpuImu.ImuDataOut
 
         # ----------------------------------------------------------------------
+        # Mode interface
+        # ----------------------------------------------------------------------
+
+        @ Query the current spacecraft mode from ModeManager
+        output port getCurrentMode: Svc.GetMode
+
+        # ----------------------------------------------------------------------
         # Commands
         # ----------------------------------------------------------------------
 
-        @ Start serializing sensor data into data product containers. Each
-        @ container is sent as soon as it fills.
-        sync command START_SERIALIZING
-
-        @ Stop serializing sensor data. Any partially filled container is sent.
-        sync command STOP_SERIALIZING
+        @ Start or stop serializing sensor data into data product containers.
+        @ START is accepted only in EXPERIMENTATION mode. Entering SAFE while
+        @ serializing automatically stops production.
+        sync command SERIALIZE(
+            @ Start or stop serialization
+            op: SerializeAction
+        )
 
         # ----------------------------------------------------------------------
         # State queries
@@ -106,6 +120,13 @@ module Components {
         event DpProductionStopped \
             severity activity high \
             format "Sensor data product production stopped"
+
+        @ SERIALIZE START rejected because the spacecraft is not in EXPERIMENTATION
+        event SerializeRejectedWrongMode(
+            current: Svc.Mode @< Mode at the time of the rejected start
+        ) \
+            severity warning low \
+            format "Cannot start serialization in mode {} (requires EXPERIMENTATION)"
 
         ###############################################################################
         # Standard AC Ports: Required for Channels, Events, Commands, and Parameters  #
